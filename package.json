@@ -1,0 +1,22 @@
+{
+  "name": "l1-transport",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "lint": "yarn run lint:typescript",
+    "lint:typescript": "tslint --format stylish --project .",
+    "lint:fix": "yarn run lint:fix:typescript",
+    "lint:fix:typescript": "prettier --config prettier-config.json --write \"{src,exec,test}/**/*.ts\""
+  },
+  "dependencies": {
+    "@eth-optimism/contracts": "^0.1.4",
+    "ethers": "^5.0.26",
+    "level": "^6.0.1",
+    "node-fetch": "^2.6.1",
+    "prettier": "^2.2.1"
+  },
+  "devDependencies": {
+    "tslint": "^6.1.3"
+  }
+}
