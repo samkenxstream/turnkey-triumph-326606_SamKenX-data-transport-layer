@@ -19,7 +19,6 @@
     "ethers": "^5.0.26",
     "express": "^4.17.1",
     "level": "^6.0.1",
-    "node-fetch": "^2.6.1",
     "prettier": "^2.2.1"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber, Contract, ethers } from 'ethers'
+import { BigNumber } from 'ethers'
 import level from 'level'
 
 /* Imports: Internal */

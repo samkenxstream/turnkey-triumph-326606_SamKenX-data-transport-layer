@@ -2,7 +2,6 @@
 import { Contract, Signer } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { getContractInterface } from '@eth-optimism/contracts/build/src/contract-defs'
-import fetch from 'node-fetch'
 
 /* Imports: Internal */
 import { ZERO_ADDRESS } from './constants'
@@ -13,22 +12,6 @@ export const loadContract = (
   provider: JsonRpcProvider
 ): Contract => {
   return new Contract(address, getContractInterface(name) as any, provider)
-}
-
-export const loadContractFromManager = async (
-  name: string,
-  Lib_AddressManager: Contract,
-  provider: JsonRpcProvider
-): Promise<Contract> => {
-  const address = await Lib_AddressManager.getAddress(name)
-
-  if (address === ZERO_ADDRESS) {
-    throw new Error(
-      `Lib_AddressManager does not have a record for a contract named: ${name}`
-    )
-  }
-
-  return loadContract(name, address, provider)
 }
 
 export const loadProxyFromManager = async (
@@ -109,68 +92,4 @@ export const loadOptimismContracts = async (
 
   // TODO: sorry
   return contracts as OptimismContracts
-}
-
-export interface SynthetixContracts {
-  l1: {
-    SynthetixBridgeToOptimism: Contract
-  }
-
-  l2: {
-    SynthetixBridgeToBase: Contract
-    TradingRewards: Contract
-    RewardEscrow: Contract
-    ProxyERC20: Contract
-  }
-}
-
-const loadSynthetixContract = (
-  snxJson: any,
-  name: string,
-  provider: JsonRpcProvider
-): Contract => {
-  return new Contract(
-    snxJson.targets[name].address,
-    snxJson.sources[name].abi,
-    provider
-  )
-}
-
-export const loadSynthetixContracts = async (
-  l1RpcProvider: JsonRpcProvider,
-  l2RpcProvider: JsonRpcProvider,
-  snxL1JsonUrl: string,
-  snxL2JsonUrl: string,
-  signer?: Signer
-): Promise<SynthetixContracts> => {
-  const snxL1Json = await (await fetch(snxL1JsonUrl)).json()
-  const snxL2Json = await (await fetch(snxL2JsonUrl)).json()
-
-  return {
-    l1: {
-      SynthetixBridgeToOptimism: loadSynthetixContract(
-        snxL1Json,
-        'SynthetixBridgeToOptimism',
-        l1RpcProvider
-      ),
-    },
-    l2: {
-      SynthetixBridgeToBase: loadSynthetixContract(
-        snxL2Json,
-        'SynthetixBridgeToBase',
-        l2RpcProvider
-      ),
-      TradingRewards: loadSynthetixContract(
-        snxL2Json,
-        'TradingRewards',
-        l2RpcProvider
-      ),
-      RewardEscrow: loadSynthetixContract(
-        snxL2Json,
-        'RewardEscrow',
-        l2RpcProvider
-      ),
-      ProxyERC20: loadSynthetixContract(snxL2Json, 'ProxyERC20', l2RpcProvider),
-    },
-  }
 }

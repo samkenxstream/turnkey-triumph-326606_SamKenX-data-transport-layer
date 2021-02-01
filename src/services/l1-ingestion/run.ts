@@ -1,4 +1,7 @@
+/* Imports: External */
 import * as dotenv from 'dotenv'
+
+/* Imports: Internal */
 import { L1IngestionService } from '../l1-ingestion/service'
 
 const main = async () => {

@@ -1,8 +1,11 @@
+/* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import express from 'express'
-import { TransportDB } from '../../db/db'
 import level from 'level'
 import { BigNumber } from 'ethers'
+
+/* Imports: Internal */
+import { TransportDB } from '../../db/db'
 
 export interface L1TransportServerOptions {
   db: string
