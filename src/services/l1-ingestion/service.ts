@@ -18,8 +18,8 @@ import {
   fromHexString,
   sleep,
   toHexString,
-  loadContract,
   loadOptimismContracts,
+  ZERO_ADDRESS,
 } from '../../utils'
 import {
   EventAddressSet,
@@ -144,23 +144,28 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       }
 
       for (const addressSetEvent of addressSetEvents) {
+        const oldAddress = await this._getContractAddressAtBlock(
+          contractName,
+          addressSetEvent.blockNumber - 1
+        )
+
         this.logger.interesting(
           `Address of ${contractName} was changed in block ${addressSetEvent.blockNumber}.`
         )
-        this.logger.interesting(
-          `Old address: ${this.state.contracts[contractName].address}`
-        )
+        this.logger.interesting(`Old address: ${oldAddress}`)
         this.logger.interesting(
           `New address: ${addressSetEvent.args._newAddress}`
         )
 
         const events: TypedEthersEvent<any>[] = await this.state.contracts[
           contractName
-        ].queryFilter(
-          this.state.contracts[contractName].filters[eventName](),
-          lastScannedEventBlock,
-          addressSetEvent.blockNumber
-        )
+        ]
+          .attach(oldAddress)
+          .queryFilter(
+            this.state.contracts[contractName].filters[eventName](),
+            lastScannedEventBlock,
+            addressSetEvent.blockNumber
+          )
 
         this.logger.info(
           `Found ${events.length} ${eventName} events between blocks ${lastScannedEventBlock} and ${addressSetEvent.blockNumber}.`
@@ -174,10 +179,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           addressSetEvent.blockNumber
         )
         lastScannedEventBlock = addressSetEvent.blockNumber
-
-        this.state.contracts[contractName] = this.state.contracts[
-          contractName
-        ].attach(addressSetEvent.args._newAddress)
       }
 
       const events: TypedEthersEvent<any>[] = await this.state.contracts[
@@ -208,6 +209,29 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
   }
 
+  private async _getContractAddressAtBlock(
+    contractName: string,
+    blockNumber: number
+  ): Promise<string> {
+    const relevantAddressSetEvents = (
+      await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet()
+      )
+    ).filter((event) => {
+      return (
+        event.args._name === contractName && event.blockNumber <= blockNumber
+      )
+    })
+
+    if (relevantAddressSetEvents.length > 0) {
+      return relevantAddressSetEvents[relevantAddressSetEvents.length - 1].args
+        ._newAddress
+    } else {
+      // Address wasn't set before this.
+      return ZERO_ADDRESS
+    }
+  }
+
   private async _handleEventsTransactionEnqueued(
     events: EventTransactionEnqueued[]
   ): Promise<void> {
@@ -233,14 +257,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // TODO: Not reliable. Should be part of an event instead, must be stored.
     const gasLimit = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
 
-    const ctcAddressEvents = (
-      await this.state.contracts.Lib_AddressManager.queryFilter(
-        this.state.contracts.Lib_AddressManager.filters.AddressSet()
-      )
-    ).filter((event) => {
-      return event.args._name === 'OVM_CanonicalTransactionChain'
-    })
-
     const transactionBatchEntries: TransactionBatchEntry[] = []
     const transactionEntries: TransactionEntry[] = []
     for (const event of events) {
@@ -265,13 +281,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         submitter: l1Transaction.from,
       })
 
-      const relevantCtcAddressEvents = ctcAddressEvents.filter((e) => {
-        return e.blockNumber < event.blockNumber
-      })
-
       const batchSubmissionEvents = await this.state.contracts.OVM_CanonicalTransactionChain.attach(
-        relevantCtcAddressEvents[relevantCtcAddressEvents.length - 1].args
-          ._newAddress
+        await this._getContractAddressAtBlock(
+          'OVM_CanonicalTransactionChain',
+          event.blockNumber
+        )
       ).queryFilter(
         this.state.contracts.OVM_CanonicalTransactionChain.filters.SequencerBatchAppended(),
         event.blockNumber,
