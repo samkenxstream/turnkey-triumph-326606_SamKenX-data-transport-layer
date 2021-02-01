@@ -77,12 +77,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       try {
         await sleep(this.options.pollingInterval)
 
-        // this.logger.info('Synchronizing TransactionEnqueued events...')
-        // await this._syncEvents(
-        //   'OVM_CanonicalTransactionChain',
-        //   'TransactionEnqueued',
-        //   this._handleEventsTransactionEnqueued.bind(this)
-        // )
+        this.logger.info('Synchronizing TransactionEnqueued events...')
+        await this._syncEvents(
+          'OVM_CanonicalTransactionChain',
+          'TransactionEnqueued',
+          this._handleEventsTransactionEnqueued.bind(this)
+        )
 
         this.logger.info('Synchronizing TransactionBatchAppended events...')
         await this._syncEvents(
