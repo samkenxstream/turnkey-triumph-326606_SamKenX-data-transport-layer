@@ -1,5 +1,6 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
+import { ctcCoder, TxType } from '@eth-optimism/core-utils'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { BigNumber } from 'ethers'
 import level from 'level'
@@ -76,12 +77,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       try {
         await sleep(this.options.pollingInterval)
 
-        this.logger.info('Synchronizing TransactionEnqueued events...')
-        await this._syncEvents(
-          'OVM_CanonicalTransactionChain',
-          'TransactionEnqueued',
-          this._handleEventsTransactionEnqueued.bind(this)
-        )
+        // this.logger.info('Synchronizing TransactionEnqueued events...')
+        // await this._syncEvents(
+        //   'OVM_CanonicalTransactionChain',
+        //   'TransactionEnqueued',
+        //   this._handleEventsTransactionEnqueued.bind(this)
+        // )
 
         this.logger.info('Synchronizing TransactionBatchAppended events...')
         await this._syncEvents(
@@ -338,10 +339,27 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               nextTxPointer + 3 + txDataLength.toNumber()
             )
 
+            const txIndex = event.args._prevTotalElements
+              .add(BigNumber.from(transactionIndex))
+              .toNumber()
+
+            let decoded = {}
+            try {
+              const txType = txData.slice(0, 1).readUInt8()
+              if (txType === TxType.EIP155) {
+                decoded = ctcCoder.eip155TxData.decode(txData.toString('hex'))
+              } else {
+                decoded = ctcCoder.ethSignTxData.decode(txData.toString('hex'))
+              }
+            } catch (err) {
+              // TODO: What should we do if this fails?
+              this.logger.error(`Unable to decode sequencer transaction`)
+              this.logger.interesting(`Transaction index: ${txIndex}`)
+              this.logger.interesting(`Transaction data: ${txData}`)
+            }
+
             transactionEntries.push({
-              index: event.args._prevTotalElements
-                .add(BigNumber.from(transactionIndex))
-                .toNumber(),
+              index: txIndex,
               batchIndex: event.args._batchIndex.toNumber(),
               blockNumber: context.ctxBlockNumber.toNumber(),
               timestamp: context.ctxTimestamp.toNumber(),
@@ -349,6 +367,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               target: '0x4200000000000000000000000000000000000005',
               origin: '0x0000000000000000000000000000000000000000',
               data: toHexString(txData),
+              decoded,
               chainElement: {
                 isSequenced: true,
                 queueIndex: 0,
@@ -384,6 +403,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               target: enqueue.target,
               origin: enqueue.origin,
               data: enqueue.data,
+              decoded: {},
               chainElement: {
                 isSequenced: false,
                 queueIndex: queueIndex,

@@ -20,6 +20,20 @@ export interface TransactionEntry {
   gasLimit: number
   target: string
   origin: string
+  decoded:
+    | {
+        sig: {
+          r: string
+          s: string
+          v: string
+        }
+        gasLimit: number
+        gasPrice: number
+        nonce: number
+        target: string
+        data: string
+      }
+    | {}
 
   chainElement: {
     isSequenced: boolean
