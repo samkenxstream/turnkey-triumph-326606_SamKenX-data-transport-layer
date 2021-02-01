@@ -1,11 +1,10 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber, Contract, ethers, Event } from 'ethers'
+import { BigNumber, Contract, ethers } from 'ethers'
 import level from 'level'
 
 /* Imports: Internal */
-import { loadOptimismContracts, OptimismContracts } from '../../utils/contracts'
 import {
   EnqueueEntry,
   StateRootBatchEntry,
@@ -14,41 +13,62 @@ import {
   TransactionEntry,
   TransportDB,
 } from '../../db/db'
-import { fromHexString, sleep, toHexString } from '../../utils'
+import {
+  OptimismContracts,
+  fromHexString,
+  sleep,
+  toHexString,
+  loadContract,
+  loadOptimismContracts,
+} from '../../utils'
+import {
+  EventAddressSet,
+  EventStateBatchAppended,
+  EventTransactionBatchAppended,
+  EventTransactionEnqueued,
+  TypedEthersEvent,
+} from './event-types'
 
 export interface L1IngestionServiceOptions {
   db: any
   addressManager: string
   confirmations: number
   l1RpcEndpoint: string
-  l1StartingBlock: number
   pollingInterval: number
-  contractParameters: {
-    [name: string]: Array<{
-      address: string
-      fromBlock?: number
-      toBlock?: number
-    }>
-  }
+  logsPerPollingInterval: number
 }
 
 export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   protected name = 'L1 Ingestion Service'
-  protected defaultOptions = {}
+  protected defaultOptions = {
+    confirmations: 12,
+    pollingInterval: 5000,
+    logsPerPollingInterval: 2000,
+  }
 
   private state: {
     db: TransportDB
     contracts: OptimismContracts
     l1RpcProvider: JsonRpcProvider
+    startingL1BlockNumber: number
   } = {} as any
 
   protected async _init(): Promise<void> {
     this.state.db = new TransportDB(level(this.options.db))
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
+
     this.state.contracts = await loadOptimismContracts(
       this.state.l1RpcProvider,
       this.options.addressManager
     )
+
+    // Assume we won't have too many of these events. Doubtful we'll ever have the 2000+ that would
+    // break this statement when interacting with alchemy or infura.
+    this.state.startingL1BlockNumber = (
+      await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet()
+      )
+    )[0].blockNumber
   }
 
   protected async _start(): Promise<void> {
@@ -57,400 +77,360 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         await sleep(this.options.pollingInterval)
 
         this.logger.info('Synchronizing TransactionEnqueued events...')
-        await this._syncEventsTransactionEnqueued()
+        await this._syncEvents(
+          'OVM_CanonicalTransactionChain',
+          'TransactionEnqueued',
+          this._handleEventsTransactionEnqueued.bind(this)
+        )
 
         this.logger.info('Synchronizing TransactionBatchAppended events...')
-        await this._syncEventsTransactionBatchAppended()
+        await this._syncEvents(
+          'OVM_CanonicalTransactionChain',
+          'TransactionBatchAppended',
+          this._handleEventsTransactionBatchAppended.bind(this)
+        )
 
         this.logger.info('Synchronizing StateBatchAppended events...')
-        await this._syncEventsStateBatchAppended()
+        await this._syncEvents(
+          'OVM_StateCommitmentChain',
+          'StateBatchAppended',
+          this._handleEventsStateBatchAppended.bind(this)
+        )
       } catch (err) {
         this.logger.error(`Caught an unhandled error: ${err}`)
       }
     }
   }
 
-  private _getEventFilter(
-    contract: ethers.Contract,
-    event: string
-  ): ethers.EventFilter {
-    return contract.filters[event]()
-  }
-
-  private _getFilterId(filter: ethers.EventFilter): string {
-    return filter.topics.join(',')
-  }
-
-  private async _findAllEvents(
-    contract: ethers.Contract,
-    filter: string | ethers.EventFilter,
-    fromBlock?: number,
-    toBlock?: number
-  ): Promise<ethers.Event[]> {
-    if (typeof filter === 'string') {
-      filter = this._getEventFilter(contract, filter)
+  private async _syncEvents(
+    contractName: string,
+    eventName: string,
+    handler: (event: TypedEthersEvent<any>[]) => Promise<void>
+  ): Promise<void> {
+    if (!this.state.contracts[contractName]) {
+      throw new Error(`Contract ${contractName} does not exist.`)
     }
 
-    let startingBlockNumber =
-      fromBlock ||
-      (await this.state.db.getLastScannedEventBlock(
-        this._getFilterId(filter)
-      )) ||
-      this.options.l1StartingBlock
-
-    let events: ethers.Event[] = []
-    let latestL1BlockNumber =
-      toBlock || (await this.state.l1RpcProvider.getBlockNumber())
-    while (startingBlockNumber < latestL1BlockNumber) {
-      events = events.concat(
-        await contract.queryFilter(
-          filter,
-          startingBlockNumber,
-          Math.min(
-            startingBlockNumber + 2000,
-            latestL1BlockNumber - this.options.confirmations
-          )
-        )
-      )
-
-      if (startingBlockNumber + 2000 > latestL1BlockNumber) {
-        startingBlockNumber = latestL1BlockNumber
-        break
-      }
-
-      startingBlockNumber += 2000
-      latestL1BlockNumber = await this.state.l1RpcProvider.getBlockNumber()
-    }
-
-    await this.state.db.putLastScannedEventBlock(
-      this._getFilterId(filter),
-      startingBlockNumber
-    )
-
-    return events
-  }
-
-  private async _findAllEventsOverMultipleAddresses(
-    contract: Contract,
-    filter: string | ethers.EventFilter,
-    parameters: Array<{
-      address: string
-      fromBlock?: number
-      toBlock?: number
-    }>
-  ): Promise<ethers.Event[]> {
-    let events: ethers.Event[] = []
-    for (const parameter of parameters) {
-      events = events.concat(
-        await this._findAllEvents(
-          contract.attach(parameter.address),
-          filter,
-          parameter.fromBlock,
-          parameter.toBlock
-        )
+    if (!this.state.contracts[contractName].filters[eventName]) {
+      throw new Error(
+        `Event ${eventName} does not exist on contract ${contractName}`
       )
     }
 
-    return events
-  }
-
-  private async _syncEventsTransactionEnqueued(): Promise<void> {
-    const filter = this._getEventFilter(
-      this.state.contracts.OVM_CanonicalTransactionChain,
-      'TransactionEnqueued'
+    const targetScannedEventBlock =
+      (await this.state.l1RpcProvider.getBlockNumber()) -
+      this.options.confirmations
+    let lastScannedEventBlock =
+      (await this.state.db.getLastScannedEventBlock(eventName)) ||
+      this.state.startingL1BlockNumber
+    let nextScannedEventBlock = Math.min(
+      lastScannedEventBlock + this.options.logsPerPollingInterval,
+      targetScannedEventBlock
     )
 
-    const prevScannedEventBlock = await this.state.db.getLastScannedEventBlock(
-      this._getFilterId(filter)
-    )
-
-    try {
-      this.logger.info(`Searching for new events...`)
-      const events = await this._findAllEvents(
-        this.state.contracts.OVM_CanonicalTransactionChain,
-        filter
-      )
-
-      if (events.length === 0) {
-        this.logger.info(`Didn't find any new events, skipping.`)
-        return
-      } else {
-        this.logger.info(
-          `Found ${events.length} new events, writing to database...`
-        )
-      }
-
-      const enqueues: EnqueueEntry[] = events.map((event) => {
-        return {
-          index: event.args._queueIndex.toNumber(),
-          target: event.args._target,
-          data: event.args._data,
-          gasLimit: event.args._gasLimit.toNumber(),
-          origin: event.args._l1TxOrigin,
-          blockNumber: event.blockNumber,
-          timestamp: event.args._timestamp.toNumber(),
-        }
+    while (lastScannedEventBlock < targetScannedEventBlock) {
+      const addressSetEvents = ((await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet(),
+        lastScannedEventBlock,
+        nextScannedEventBlock
+      )) as EventAddressSet[]).filter((event) => {
+        return event.args._name === contractName
       })
 
-      await this.state.db.putEnqueueEntries(enqueues)
-    } catch (err) {
+      if (addressSetEvents.length > 0) {
+        this.logger.interesting(
+          `Found ${addressSetEvents.length} address change(s) for this contract!`
+        )
+      }
+
+      for (const addressSetEvent of addressSetEvents) {
+        this.logger.interesting(
+          `Address of ${contractName} was changed in block ${addressSetEvent.blockNumber}.`
+        )
+        this.logger.interesting(
+          `Old address: ${this.state.contracts[contractName].address}`
+        )
+        this.logger.interesting(
+          `New address: ${addressSetEvent.args._newAddress}`
+        )
+
+        const events: TypedEthersEvent<any>[] = await this.state.contracts[
+          contractName
+        ].queryFilter(
+          this.state.contracts[contractName].filters[eventName](),
+          lastScannedEventBlock,
+          addressSetEvent.blockNumber
+        )
+
+        this.logger.info(
+          `Found ${events.length} ${eventName} events between blocks ${lastScannedEventBlock} and ${addressSetEvent.blockNumber}.`
+        )
+        if (events.length > 0) {
+          await handler(events)
+        }
+
+        await this.state.db.putLastScannedEventBlock(
+          eventName,
+          addressSetEvent.blockNumber
+        )
+        lastScannedEventBlock = addressSetEvent.blockNumber
+
+        this.state.contracts[contractName] = this.state.contracts[
+          contractName
+        ].attach(addressSetEvent.args._newAddress)
+      }
+
+      const events: TypedEthersEvent<any>[] = await this.state.contracts[
+        contractName
+      ].queryFilter(
+        this.state.contracts[contractName].filters[eventName](),
+        lastScannedEventBlock,
+        nextScannedEventBlock
+      )
+
+      this.logger.info(
+        `Found ${events.length} ${eventName} events between blocks ${lastScannedEventBlock} and ${nextScannedEventBlock}`
+      )
+      if (events.length > 0) {
+        await handler(events)
+      }
+
       await this.state.db.putLastScannedEventBlock(
-        this._getFilterId(filter),
-        prevScannedEventBlock
+        eventName,
+        nextScannedEventBlock
+      )
+
+      lastScannedEventBlock = nextScannedEventBlock
+      nextScannedEventBlock = Math.min(
+        lastScannedEventBlock + this.options.logsPerPollingInterval,
+        targetScannedEventBlock
       )
     }
   }
 
-  private async _syncEventsTransactionBatchAppended(): Promise<void> {
-    const filter = this._getEventFilter(
-      this.state.contracts.OVM_CanonicalTransactionChain,
-      'TransactionBatchAppended'
-    )
+  private async _handleEventsTransactionEnqueued(
+    events: EventTransactionEnqueued[]
+  ): Promise<void> {
+    const enqueueEntries: EnqueueEntry[] = []
+    for (const event of events) {
+      enqueueEntries.push({
+        index: event.args._queueIndex.toNumber(),
+        target: event.args._target,
+        data: event.args._data,
+        gasLimit: event.args._gasLimit.toNumber(),
+        origin: event.args._l1TxOrigin,
+        blockNumber: event.blockNumber,
+        timestamp: event.args._timestamp.toNumber(),
+      })
+    }
 
-    const prevScannedEventBlock = await this.state.db.getLastScannedEventBlock(
-      this._getFilterId(filter)
-    )
+    await this.state.db.putEnqueueEntries(enqueueEntries)
+  }
 
-    try {
-      this.logger.info(`Searching for new events...`)
-      const events = await this._findAllEvents(
-        this.state.contracts.OVM_CanonicalTransactionChain,
-        filter
+  private async _handleEventsTransactionBatchAppended(
+    events: EventTransactionBatchAppended[]
+  ): Promise<void> {
+    // TODO: Not reliable. Should be part of an event instead, must be stored.
+    const gasLimit = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
+
+    const ctcAddressEvents = (
+      await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet()
+      )
+    ).filter((event) => {
+      return event.args._name === 'OVM_CanonicalTransactionChain'
+    })
+
+    const transactionBatchEntries: TransactionBatchEntry[] = []
+    const transactionEntries: TransactionEntry[] = []
+    for (const event of events) {
+      this.logger.info(
+        `Populating data for batch index: ${event.args._batchIndex.toString()}`
+      )
+      const timestamp = (
+        await this.state.l1RpcProvider.getBlock(event.blockNumber)
+      ).timestamp
+      const l1Transaction = await this.state.l1RpcProvider.getTransaction(
+        event.transactionHash
       )
 
-      if (events.length === 0) {
-        this.logger.info(`Didn't find any new events, skipping.`)
-        return
-      } else {
-        this.logger.info(
-          `Found ${events.length} new events, populating relevant data...`
-        )
-      }
+      transactionBatchEntries.push({
+        index: event.args._batchIndex.toNumber(),
+        root: event.args._batchRoot,
+        size: event.args._batchSize.toNumber(),
+        prevTotalElements: event.args._prevTotalElements.toNumber(),
+        extraData: event.args._extraData,
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        timestamp: BigNumber.from(timestamp).toNumber(),
+        submitter: l1Transaction.from,
+      })
 
-      const gasLimit = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
-      const batches: TransactionBatchEntry[] = []
-      const transactions: TransactionEntry[] = []
+      const relevantCtcAddressEvents = ctcAddressEvents.filter((e) => {
+        return e.blockNumber < event.blockNumber
+      })
 
-      for (const event of events) {
-        this.logger.info(
-          `Populating data for batch index: ${event.args._batchIndex.toString()}`
-        )
-        const timestamp = (
-          await this.state.l1RpcProvider.getBlock(event.blockNumber)
-        ).timestamp
-        const l1Transaction = await this.state.l1RpcProvider.getTransaction(
-          event.transactionHash
-        )
+      const batchSubmissionEvents = await this.state.contracts.OVM_CanonicalTransactionChain.attach(
+        relevantCtcAddressEvents[relevantCtcAddressEvents.length - 1].args
+          ._newAddress
+      ).queryFilter(
+        this.state.contracts.OVM_CanonicalTransactionChain.filters.SequencerBatchAppended(),
+        event.blockNumber,
+        event.blockNumber
+      )
 
-        batches.push({
-          index: event.args._batchIndex.toString(),
-          root: event.args._batchRoot,
-          size: event.args._batchSize.toString(),
-          prevTotalElements: event.args._prevTotalElements.toString(),
-          extraData: event.args._extraData,
-          blockNumber: BigNumber.from(event.blockNumber).toNumber(),
-          timestamp: BigNumber.from(timestamp).toNumber(),
-          submitter: l1Transaction.from,
-        })
+      const batchSubmissionEvent = batchSubmissionEvents.find(
+        (batchSubmissionEvent) => {
+          return (
+            batchSubmissionEvent.transactionHash === event.transactionHash &&
+            batchSubmissionEvent.logIndex === event.logIndex + 1
+          )
+        }
+      )
 
-        const batchSubmissionEvents = await this.state.contracts.OVM_CanonicalTransactionChain.queryFilter(
-          this.state.contracts.OVM_CanonicalTransactionChain.filters.SequencerBatchAppended(),
-          event.blockNumber,
-          event.blockNumber
-        )
+      let transactionIndex = 0
+      let enqueuedCount = 0
+      if (batchSubmissionEvent) {
+        const txdata = fromHexString(l1Transaction.data)
+        const numContexts = BigNumber.from(txdata.slice(12, 15))
 
-        const batchSubmissionEvent = batchSubmissionEvents.find(
-          (batchSubmissionEvent) => {
-            return (
-              batchSubmissionEvent.transactionHash === event.transactionHash &&
-              batchSubmissionEvent.logIndex === event.logIndex + 1
+        let nextTxPointer = 15 + 16 * numContexts.toNumber()
+        for (let i = 0; i < numContexts.toNumber(); i++) {
+          const contextPointer = 15 + 16 * i
+          const context = {
+            numSequencedTransactions: BigNumber.from(
+              txdata.slice(contextPointer, contextPointer + 3)
+            ),
+            numSubsequentQueueTransactions: BigNumber.from(
+              txdata.slice(contextPointer + 3, contextPointer + 6)
+            ),
+            ctxTimestamp: BigNumber.from(
+              txdata.slice(contextPointer + 6, contextPointer + 11)
+            ),
+            ctxBlockNumber: BigNumber.from(
+              txdata.slice(contextPointer + 11, contextPointer + 16)
+            ),
+          }
+
+          for (
+            let j = 0;
+            j < context.numSequencedTransactions.toNumber();
+            j++
+          ) {
+            const txDataLength = BigNumber.from(
+              txdata.slice(nextTxPointer, nextTxPointer + 3)
             )
-          }
-        )
+            const txData = txdata.slice(
+              nextTxPointer + 3,
+              nextTxPointer + 3 + txDataLength.toNumber()
+            )
 
-        let transactionIndex = 0
-        let enqueuedCount = 0
-        if (batchSubmissionEvent) {
-          const txdata = fromHexString(l1Transaction.data)
-          const numContexts = BigNumber.from(txdata.slice(12, 15))
-
-          let nextTxPointer = 15 + 16 * numContexts.toNumber()
-          for (let i = 0; i < numContexts.toNumber(); i++) {
-            const contextPointer = 15 + 16 * i
-            const context = {
-              numSequencedTransactions: BigNumber.from(
-                txdata.slice(contextPointer, contextPointer + 3)
-              ),
-              numSubsequentQueueTransactions: BigNumber.from(
-                txdata.slice(contextPointer + 3, contextPointer + 6)
-              ),
-              ctxTimestamp: BigNumber.from(
-                txdata.slice(contextPointer + 6, contextPointer + 11)
-              ),
-              ctxBlockNumber: BigNumber.from(
-                txdata.slice(contextPointer + 11, contextPointer + 16)
-              ),
-            }
-
-            for (
-              let j = 0;
-              j < context.numSequencedTransactions.toNumber();
-              j++
-            ) {
-              const txDataLength = BigNumber.from(
-                txdata.slice(nextTxPointer, nextTxPointer + 3)
-              )
-              const txData = txdata.slice(
-                nextTxPointer + 3,
-                nextTxPointer + 3 + txDataLength.toNumber()
-              )
-
-              transactions.push({
-                index: event.args._prevTotalElements
-                  .add(BigNumber.from(transactionIndex))
-                  .toNumber(),
-                batchIndex: event.args._batchIndex.toNumber(),
-                blockNumber: context.ctxBlockNumber.toNumber(),
+            transactionEntries.push({
+              index: event.args._prevTotalElements
+                .add(BigNumber.from(transactionIndex))
+                .toNumber(),
+              batchIndex: event.args._batchIndex.toNumber(),
+              blockNumber: context.ctxBlockNumber.toNumber(),
+              timestamp: context.ctxTimestamp.toNumber(),
+              gasLimit: BigNumber.from(gasLimit).toNumber(),
+              target: '0x4200000000000000000000000000000000000005',
+              origin: '0x0000000000000000000000000000000000000000',
+              data: toHexString(txData),
+              chainElement: {
+                isSequenced: true,
+                queueIndex: 0,
                 timestamp: context.ctxTimestamp.toNumber(),
-                gasLimit: BigNumber.from(gasLimit).toNumber(),
-                target: '0x4200000000000000000000000000000000000005',
-                origin: '0x0000000000000000000000000000000000000000',
-                data: toHexString(txData),
-                chainElement: {
-                  isSequenced: true,
-                  queueIndex: 0,
-                  timestamp: context.ctxTimestamp.toNumber(),
-                  blockNumber: context.ctxBlockNumber.toNumber(),
-                  txData: toHexString(txData),
-                },
-              })
+                blockNumber: context.ctxBlockNumber.toNumber(),
+                txData: toHexString(txData),
+              },
+            })
 
-              nextTxPointer += 3 + txDataLength.toNumber()
-              transactionIndex++
-            }
+            nextTxPointer += 3 + txDataLength.toNumber()
+            transactionIndex++
+          }
 
-            for (
-              let j = 0;
-              j < context.numSubsequentQueueTransactions.toNumber();
-              j++
-            ) {
-              const queueIndex =
-                batchSubmissionEvent.args._startingQueueIndex.toNumber() +
-                enqueuedCount
+          for (
+            let j = 0;
+            j < context.numSubsequentQueueTransactions.toNumber();
+            j++
+          ) {
+            const queueIndex =
+              batchSubmissionEvent.args._startingQueueIndex.toNumber() +
+              enqueuedCount
 
-              const enqueue = await this.state.db.getEnqueueByIndex(queueIndex)
+            const enqueue = await this.state.db.getEnqueueByIndex(queueIndex)
 
-              transactions.push({
-                index: event.args._prevTotalElements
-                  .add(BigNumber.from(transactionIndex))
-                  .toNumber(),
-                batchIndex: event.args._batchIndex.toNumber(),
-                blockNumber: enqueue.blockNumber,
-                timestamp: enqueue.timestamp,
-                gasLimit: enqueue.gasLimit,
-                target: enqueue.target,
-                origin: enqueue.origin,
-                data: enqueue.data,
-                chainElement: {
-                  isSequenced: false,
-                  queueIndex: queueIndex,
-                  timestamp: 0,
-                  blockNumber: 0,
-                  txData: '0x',
-                },
-              })
+            transactionEntries.push({
+              index: event.args._prevTotalElements
+                .add(BigNumber.from(transactionIndex))
+                .toNumber(),
+              batchIndex: event.args._batchIndex.toNumber(),
+              blockNumber: enqueue.blockNumber,
+              timestamp: enqueue.timestamp,
+              gasLimit: enqueue.gasLimit,
+              target: enqueue.target,
+              origin: enqueue.origin,
+              data: enqueue.data,
+              chainElement: {
+                isSequenced: false,
+                queueIndex: queueIndex,
+                timestamp: 0,
+                blockNumber: 0,
+                txData: '0x',
+              },
+            })
 
-              enqueuedCount++
-              transactionIndex++
-            }
+            enqueuedCount++
+            transactionIndex++
           }
         }
       }
-
-      await this.state.db.putTransactionBatchEntries(batches)
-      await this.state.db.putTransactionEntries(transactions)
-    } catch (err) {
-      await this.state.db.putLastScannedEventBlock(
-        this._getFilterId(filter),
-        prevScannedEventBlock
-      )
     }
+
+    await this.state.db.putTransactionBatchEntries(transactionBatchEntries)
+    await this.state.db.putTransactionEntries(transactionEntries)
   }
 
-  public async _syncEventsStateBatchAppended(): Promise<void> {
-    const filter = this._getEventFilter(
-      this.state.contracts.OVM_StateCommitmentChain,
-      'StateBatchAppended'
-    )
-
-    const prevScannedEventBlock = await this.state.db.getLastScannedEventBlock(
-      this._getFilterId(filter)
-    )
-
-    try {
-      const events = await this._findAllEventsOverMultipleAddresses(
-        this.state.contracts.OVM_StateCommitmentChain,
-        'StateBatchAppended',
-        this.options.contractParameters['OVM_StateCommitmentChain']
+  private async _handleEventsStateBatchAppended(
+    events: EventStateBatchAppended[]
+  ): Promise<void> {
+    const stateRootBatchEntries: StateRootBatchEntry[] = []
+    const stateRootEntries: StateRootEntry[] = []
+    for (const event of events) {
+      const block = await this.state.l1RpcProvider.getBlock(event.blockNumber)
+      const l1Transaction = await this.state.l1RpcProvider.getTransaction(
+        event.transactionHash
       )
 
-      if (events.length === 0) {
-        this.logger.info(`Didn't find any new events, skipping.`)
-        return
-      } else {
-        this.logger.info(
-          `Found ${events.length} new events, populating relevant data...`
-        )
-      }
+      stateRootBatchEntries.push({
+        index: event.args._batchIndex.toNumber(),
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        timestamp: BigNumber.from(block.timestamp).toNumber(),
+        submitter: l1Transaction.from,
+        size: event.args._batchSize.toNumber(),
+        root: event.args._batchRoot,
+        prevTotalElements: event.args._prevTotalElements.toNumber(),
+        extraData: event.args._extraData,
+      })
 
-      const batches: StateRootBatchEntry[] = []
-      const stateRoots: StateRootEntry[] = []
-      for (const event of events) {
-        this.logger.info(
-          `Populating data for batch index: ${event.args._batchIndex.toString()}`
-        )
-        const timestamp = (
-          await this.state.l1RpcProvider.getBlock(event.blockNumber)
-        ).timestamp
-        const l1Transaction = await this.state.l1RpcProvider.getTransaction(
-          event.transactionHash
-        )
+      const [
+        rawStateRoots,
+      ] = this.state.contracts.OVM_StateCommitmentChain.interface.decodeFunctionData(
+        'appendStateBatch',
+        l1Transaction.data
+      )
 
-        batches.push({
-          index: event.args._batchIndex.toNumber(),
-          blockNumber: BigNumber.from(event.blockNumber).toNumber(),
-          timestamp: BigNumber.from(timestamp).toNumber(),
-          submitter: l1Transaction.from,
-          size: event.args._batchSize.toNumber(),
-          root: event.args._batchRoot,
-          prevTotalElements: event.args._prevTotalElements.toNumber(),
-          extraData: event.args._extraData,
+      for (let i = 0; i < rawStateRoots.length; i++) {
+        stateRootEntries.push({
+          index: event.args._prevTotalElements
+            .add(BigNumber.from(i))
+            .toNumber(),
+          batchIndex: event.args._batchIndex.toNumber(),
+          value: rawStateRoots[i],
         })
-
-        const [
-          rawStateRoots,
-        ] = this.state.contracts.OVM_StateCommitmentChain.interface.decodeFunctionData(
-          'appendStateBatch',
-          l1Transaction.data
-        )
-
-        for (let i = 0; i < rawStateRoots.length; i++) {
-          stateRoots.push({
-            index: event.args._prevTotalElements
-              .add(BigNumber.from(i))
-              .toString(),
-            value: rawStateRoots[i],
-          })
-        }
       }
-
-      await this.state.db.putStateRootBatchEntries(batches)
-      await this.state.db.putStateRootEntries(stateRoots)
-    } catch (err) {
-      await this.state.db.putLastScannedEventBlock(
-        this._getFilterId(filter),
-        prevScannedEventBlock
-      )
     }
+
+    await this.state.db.putStateRootBatchEntries(stateRootBatchEntries)
+    await this.state.db.putStateRootEntries(stateRootEntries)
   }
 }

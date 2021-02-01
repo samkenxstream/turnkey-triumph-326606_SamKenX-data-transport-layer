@@ -49,6 +49,7 @@ export const loadProxyFromManager = async (
 }
 
 export interface OptimismContracts {
+  Lib_AddressManager: Contract
   OVM_StateCommitmentChain: Contract
   OVM_CanonicalTransactionChain: Contract
   OVM_FraudVerifier: Contract
@@ -61,7 +62,7 @@ export const loadOptimismContracts = async (
   addressManagerAddress: string,
   signer?: Signer
 ): Promise<OptimismContracts> => {
-  const Lib_AddressManager = await loadContract(
+  const Lib_AddressManager = loadContract(
     'Lib_AddressManager',
     addressManagerAddress,
     l1RpcProvider
@@ -90,13 +91,6 @@ export const loadOptimismContracts = async (
     },
   ]
 
-  const l2Inputs = [
-    {
-      name: 'OVM_L2CrossDomainMessenger',
-      interface: 'iOVM_L2CrossDomainMessenger',
-    },
-  ]
-
   const contracts = {}
   for (const input of inputs) {
     contracts[input.name] = await loadProxyFromManager(
@@ -110,6 +104,8 @@ export const loadOptimismContracts = async (
       contracts[input.name] = contracts[input.name].connect(signer)
     }
   }
+
+  contracts['Lib_AddressManager'] = Lib_AddressManager
 
   // TODO: sorry
   return contracts as OptimismContracts

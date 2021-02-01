@@ -42,6 +42,7 @@ export interface TransactionBatchEntry {
 
 export interface StateRootEntry {
   index: number
+  batchIndex: number
   value: string
 }
 
@@ -108,27 +109,41 @@ export class TransportDB {
   }
 
   public async getEnqueueByIndex(index: number): Promise<EnqueueEntry> {
-    return this._get(`enqueue:index:${index}`)
+    return this._get(`enqueue:index`, index)
   }
 
   public async getTransactionByIndex(index: number): Promise<TransactionEntry> {
-    return await this._get(`transaction:index:${index}`)
+    return this._get(`transaction:index`, index)
+  }
+
+  public async getTransactionsByIndexRange(
+    start: number,
+    end: number
+  ): Promise<TransactionEntry[]> {
+    return this._values(`transaction:index`, start, end)
   }
 
   public async getTransactionBatchByIndex(
     index: number
   ): Promise<TransactionBatchEntry> {
-    return this._get(`batch:transaction:index:${index}`)
+    return this._get(`batch:transaction:index`, index)
   }
 
   public async getStateRootByIndex(index: number): Promise<StateRootEntry> {
-    return this._get(`stateroot:index:${index}`)
+    return this._get(`stateroot:index`, index)
+  }
+
+  public async getStateRootsByIndexRange(
+    start: number,
+    end: number
+  ): Promise<StateRootEntry[]> {
+    return this._values(`stateroot:index`, start, end)
   }
 
   public async getStateRootBatchByIndex(
     index: number
   ): Promise<StateRootBatchEntry> {
-    return this._get(`batch:stateroot:index:${index}`)
+    return this._get(`batch:stateroot:index`, index)
   }
 
   public async getLastScannedEventBlock(event: string): Promise<number> {
@@ -148,8 +163,35 @@ export class TransportDB {
     return this.db.put(`event:latest:${event}`, block)
   }
 
-  private async _get(key: string): Promise<any> {
-    return JSON.parse(await this.db.get(key))
+  private async _values(
+    key: string,
+    start: number,
+    end: number
+  ): Promise<any[]> {
+    return new Promise<any[]>((resolve, reject) => {
+      const entries: any[] = []
+      this.db
+        .createValueStream({
+          gte: this._makeKey(key, start),
+          lt: this._makeKey(key, end),
+        })
+        .on('data', (transaction: string) => {
+          entries.push(JSON.parse(transaction))
+        })
+        .on('error', (err: any) => {
+          reject(err)
+        })
+        .on('close', () => {
+          resolve(entries)
+        })
+        .on('end', () => {
+          resolve(entries)
+        })
+    })
+  }
+
+  private async _get(key: string, index: number): Promise<any> {
+    return JSON.parse(await this.db.get(this._makeKey(key, index)))
   }
 
   private async _putBatch(key: string, elements: any[]): Promise<void> {
@@ -157,10 +199,14 @@ export class TransportDB {
       elements.map((element) => {
         return {
           type: 'put',
-          key: `${key}:${element.index}`,
+          key: this._makeKey(key, element.index),
           value: JSON.stringify(element),
         }
       })
     )
+  }
+
+  private _makeKey(key: string, index: number): string {
+    return `${key}:${BigNumber.from(index).toString().padStart(32, '0')}`
   }
 }
