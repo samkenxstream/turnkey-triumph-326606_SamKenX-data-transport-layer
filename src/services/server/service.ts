@@ -33,27 +33,50 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 
     this.state.app.get('/eth/context/latest', async (req, res) => {
-      const blockNumber =
-        (await this.state.l1RpcProvider.getBlockNumber()) -
-        this.options.confirmations
-      const timestamp = (await this.state.l1RpcProvider.getBlock(blockNumber))
-        .timestamp
-      res.json({
-        blockNumber,
-        timestamp,
-      })
+      try {
+        const blockNumber =
+          (await this.state.l1RpcProvider.getBlockNumber()) -
+          this.options.confirmations
+        const timestamp = (await this.state.l1RpcProvider.getBlock(blockNumber))
+          .timestamp
+
+        res.json({
+          blockNumber,
+          timestamp,
+        })
+      } catch (e) {
+        res.status(400)
+        res.json({ error: e.toString() })
+      }
     })
 
     this.state.app.get('/enqueue/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestEnqueue())
+      try {
+        const enqueue = await this.state.db.getLatestEnqueue()
+        if (enqueue === null) {
+          return res.json(null)
+        }
+
+        res.json(enqueue)
+      } catch (e) {
+        res.status(400)
+        res.json({ error: e.toString() })
+      }
     })
 
     this.state.app.get('/enqueue/index/:index', async (req, res) => {
-      res.json(
-        await this.state.db.getEnqueueByIndex(
-          BigNumber.from(req.params.index).toNumber()
-        )
-      )
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const enqueue = await this.state.db.getEnqueueByIndex(index)
+        if (enqueue === null) {
+          return res.json(null)
+        }
+
+        res.json(enqueue)
+      } catch (e) {
+        res.status(400)
+        res.json({ error: e.toString() })
+      }
     })
 
     this.state.app.get('/transaction/latest', async (req, res) => {
@@ -94,7 +117,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getTransactionBatchByIndex(
           transaction.batchIndex
         )
-
+        
         res.json({
           transaction,
           batch,
