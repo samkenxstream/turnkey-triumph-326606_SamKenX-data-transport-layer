@@ -350,15 +350,21 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               if (txType === TxType.EIP155) {
                 type = 'EIP155'
                 decoded = ctcCoder.eip155TxData.decode(txData.toString('hex'))
-              } else {
+              } else if (txType === TxType.EthSign) {
                 type = 'ETH_SIGN'
                 decoded = ctcCoder.ethSignTxData.decode(txData.toString('hex'))
+              } else {
+                throw new Error(`Unknown sequencer transaction type.`)
               }
             } catch (err) {
               // TODO: What should we do if this fails?
-              this.logger.error(`Unable to decode sequencer transaction`)
               this.logger.interesting(`Transaction index: ${txIndex}`)
-              this.logger.interesting(`Transaction data: ${txData}`)
+              this.logger.interesting(
+                `Transaction data: ${toHexString(txData)}`
+              )
+              this.logger.error(
+                `Unable to decode sequencer transaction: ${err}`
+              )
             }
 
             transactionEntries.push({
