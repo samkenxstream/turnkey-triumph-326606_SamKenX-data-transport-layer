@@ -234,7 +234,11 @@ export class TransportDB {
   }
 
   private async _get(key: string, index: number): Promise<any> {
-    return JSON.parse(await this.db.get(this._makeKey(key, index)))
+    try {
+      return JSON.parse(await this.db.get(this._makeKey(key, index)))
+    } catch (err) {
+      return null
+    }
   }
 
   private async _putBatch(key: string, elements: any[]): Promise<void> {

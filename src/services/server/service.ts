@@ -46,17 +46,21 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         })
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString()})
+        res.json({ error: e.toString() })
       }
     })
 
     this.state.app.get('/enqueue/latest', async (req, res) => {
       try {
         const enqueue = await this.state.db.getLatestEnqueue()
+        if (enqueue === null) {
+          return res.json(null)
+        }
+
         res.json(enqueue)
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString()})
+        res.json({ error: e.toString() })
       }
     })
 
@@ -64,20 +68,28 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
         const enqueue = await this.state.db.getEnqueueByIndex(index)
+        if (enqueue === null) {
+          return res.json(null)
+        }
+
         res.json(enqueue)
       } catch (e) {
-        res.status(404)
-        res.json({error: e.toString()})
+        res.status(400)
+        res.json({ error: e.toString() })
       }
     })
 
     this.state.app.get('/transaction/latest', async (req, res) => {
       try {
         const transaction = await this.state.db.getLatestTransaction()
+        if (transaction === null) {
+          return res.json(null)
+        }
+
         res.json(transaction)
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString})
+        res.json({ error: e.toString })
       }
     })
 
@@ -85,6 +97,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
         const transaction = await this.state.db.getTransactionByIndex(index)
+        if (transaction === null) {
+          return res.json(null)
+        }
+
         const batch = await this.state.db.getTransactionBatchByIndex(
           transaction.batchIndex
         )
@@ -93,18 +109,22 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           batch,
         })
       } catch (e) {
-        res.status(404)
-        res.json({error: e.toString()})
+        res.status(400)
+        res.json({ error: e.toString() })
       }
     })
 
     this.state.app.get('/batch/transaction/latest', async (req, res) => {
       try {
         const batch = await this.state.db.getLatestTransactionBatch()
+        if (batch === null) {
+          return res.json(null)
+        }
+
         res.json(batch)
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString()})
+        res.json({ error: e.toString() })
       }
     })
 
@@ -112,6 +132,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
         const batch = await this.state.db.getTransactionBatchByIndex(index)
+        if (batch === null) {
+          return res.json(null)
+        }
+
         const transactions = await this.state.db.getTransactionsByIndexRange(
           BigNumber.from(batch.prevTotalElements).toNumber(),
           BigNumber.from(batch.prevTotalElements).toNumber() +
@@ -123,18 +147,22 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           transactions,
         })
       } catch (e) {
-        res.status(404)
-        res.json({error: e.toString()})
+        res.status(400)
+        res.json({ error: e.toString() })
       }
     })
 
     this.state.app.get('/stateroot/latest', async (req, res) => {
       try {
         const stateRoot = await this.state.db.getLatestStateRoot()
+        if (stateRoot === null) {
+          return res.json(null)
+        }
+
         res.json(stateRoot)
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString()})
+        res.json({ error: e.toString() })
       }
     })
 
@@ -142,6 +170,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
         const stateRoot = await this.state.db.getStateRootByIndex(index)
+        if (stateRoot === null) {
+          return res.json(null)
+        }
+
         const batch = await this.state.db.getStateRootBatchByIndex(
           stateRoot.batchIndex
         )
@@ -151,8 +183,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           batch,
         })
       } catch (e) {
-        res.status(404)
-        res.json({error: e.toString()})
+        res.status(400)
+        res.json({ error: e.toString() })
       }
     })
 
@@ -162,7 +194,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         res.json(batch)
       } catch (e) {
         res.status(400)
-        res.json({error: e.toString()})
+        res.json({ error: e.toString() })
       }
     })
 
@@ -181,8 +213,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           stateRoots,
         })
       } catch (e) {
-        res.status(404)
-        res.json({error: e.toString()})
+        res.status(400)
+        res.json({ error: e.toString() })
       }
     })
   }
