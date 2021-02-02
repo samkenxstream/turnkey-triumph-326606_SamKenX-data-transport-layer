@@ -33,107 +33,157 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 
     this.state.app.get('/eth/context/latest', async (req, res) => {
-      const blockNumber =
-        (await this.state.l1RpcProvider.getBlockNumber()) -
-        this.options.confirmations
-      const timestamp = (await this.state.l1RpcProvider.getBlock(blockNumber))
-        .timestamp
-      res.json({
-        blockNumber,
-        timestamp,
-      })
+      try {
+        const blockNumber =
+          (await this.state.l1RpcProvider.getBlockNumber()) -
+          this.options.confirmations
+        const timestamp = (await this.state.l1RpcProvider.getBlock(blockNumber))
+          .timestamp
+
+        res.json({
+          blockNumber,
+          timestamp,
+        })
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/enqueue/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestEnqueue())
+      try {
+        const enqueue = await this.state.db.getLatestEnqueue()
+        res.json(enqueue)
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/enqueue/index/:index', async (req, res) => {
-      res.json(
-        await this.state.db.getEnqueueByIndex(
-          BigNumber.from(req.params.index).toNumber()
-        )
-      )
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const enqueue = await this.state.db.getEnqueueByIndex(index)
+        res.json(enqueue)
+      } catch (e) {
+        res.status(404)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/transaction/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestTransaction())
+      try {
+        const transaction = await this.state.db.getLatestTransaction()
+        res.json(transaction)
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString})
+      }
     })
 
     this.state.app.get('/transaction/index/:index', async (req, res) => {
-      const transaction = await this.state.db.getTransactionByIndex(
-        BigNumber.from(req.params.index).toNumber()
-      )
-
-      const batch = await this.state.db.getTransactionBatchByIndex(
-        transaction.batchIndex
-      )
-
-      res.json({
-        transaction,
-        batch,
-      })
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const transaction = await this.state.db.getTransactionByIndex(index)
+        const batch = await this.state.db.getTransactionBatchByIndex(
+          transaction.batchIndex
+        )
+        res.json({
+          transaction,
+          batch,
+        })
+      } catch (e) {
+        res.status(404)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/batch/transaction/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestTransactionBatch())
+      try {
+        const batch = await this.state.db.getLatestTransactionBatch()
+        res.json(batch)
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/batch/transaction/index/:index', async (req, res) => {
-      const batch = await this.state.db.getTransactionBatchByIndex(
-        BigNumber.from(req.params.index).toNumber()
-      )
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const batch = await this.state.db.getTransactionBatchByIndex(index)
+        const transactions = await this.state.db.getTransactionsByIndexRange(
+          BigNumber.from(batch.prevTotalElements).toNumber(),
+          BigNumber.from(batch.prevTotalElements).toNumber() +
+            BigNumber.from(batch.size).toNumber()
+        )
 
-      const transactions = await this.state.db.getTransactionsByIndexRange(
-        BigNumber.from(batch.prevTotalElements).toNumber(),
-        BigNumber.from(batch.prevTotalElements).toNumber() +
-          BigNumber.from(batch.size).toNumber()
-      )
-
-      res.json({
-        batch,
-        transactions,
-      })
+        res.json({
+          batch,
+          transactions,
+        })
+      } catch (e) {
+        res.status(404)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/stateroot/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestStateRoot())
+      try {
+        const stateRoot = await this.state.db.getLatestStateRoot()
+        res.json(stateRoot)
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/stateroot/index/:index', async (req, res) => {
-      const stateRoot = await this.state.db.getStateRootByIndex(
-        BigNumber.from(req.params.index).toNumber()
-      )
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const stateRoot = await this.state.db.getStateRootByIndex(index)
+        const batch = await this.state.db.getStateRootBatchByIndex(
+          stateRoot.batchIndex
+        )
 
-      const batch = await this.state.db.getStateRootBatchByIndex(
-        stateRoot.batchIndex
-      )
-
-      res.json({
-        stateRoot,
-        batch,
-      })
+        res.json({
+          stateRoot,
+          batch,
+        })
+      } catch (e) {
+        res.status(404)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/batch/stateroot/latest', async (req, res) => {
-      res.json(await this.state.db.getLatestStateRootBatch())
+      try {
+        const batch = await this.state.db.getLatestStateRootBatch()
+        res.json(batch)
+      } catch (e) {
+        res.status(400)
+        res.json({error: e.toString()})
+      }
     })
 
     this.state.app.get('/batch/stateroot/index/:index', async (req, res) => {
-      const batch = await this.state.db.getStateRootBatchByIndex(
-        BigNumber.from(req.params.index).toNumber()
-      )
+      const index = BigNumber.from(req.params.index).toNumber()
+      try {
+        const batch = await this.state.db.getStateRootBatchByIndex(index)
+        const stateRoots = await this.state.db.getStateRootsByIndexRange(
+          BigNumber.from(batch.prevTotalElements).toNumber(),
+          BigNumber.from(batch.prevTotalElements).toNumber() +
+            BigNumber.from(batch.size).toNumber()
+        )
 
-      const stateRoots = await this.state.db.getStateRootsByIndexRange(
-        BigNumber.from(batch.prevTotalElements).toNumber(),
-        BigNumber.from(batch.prevTotalElements).toNumber() +
-          BigNumber.from(batch.size).toNumber()
-      )
-
-      res.json({
-        batch,
-        stateRoots,
-      })
+        res.json({
+          batch,
+          stateRoots,
+        })
+      } catch (e) {
+        res.status(404)
+        res.json({error: e.toString()})
+      }
     })
   }
 
