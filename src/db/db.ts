@@ -20,28 +20,21 @@ export interface TransactionEntry {
   gasLimit: number
   target: string
   origin: string
-  decoded:
-    | {
-        sig: {
-          r: string
-          s: string
-          v: string
-        }
-        gasLimit: number
-        gasPrice: number
-        nonce: number
-        target: string
-        data: string
-      }
-    | {}
-
-  chainElement: {
-    isSequenced: boolean
-    queueIndex: number
-    timestamp: number
-    blockNumber: number
-    txData: string
-  }
+  queueOrigin: 'sequencer' | 'l1'
+  queueIndex: number | null
+  type: 'EIP155' | 'ETH_SIGN' | null
+  decoded: {
+    sig: {
+      r: string
+      s: string
+      v: string
+    }
+    gasLimit: number
+    gasPrice: number
+    nonce: number
+    target: string
+    data: string
+  } | null
 }
 
 export interface TransactionBatchEntry {
@@ -98,29 +91,40 @@ export class TransportDB {
   constructor(public db: any) {}
 
   public async putEnqueueEntries(entries: EnqueueEntry[]): Promise<void> {
-    return this._putBatch(`enqueue:index`, entries)
+    await this._putBatch(`enqueue:index`, entries)
+    await this.db.put(`enqueue:latest`, entries[entries.length - 1].index)
   }
 
   public async putTransactionEntries(
     entries: TransactionEntry[]
   ): Promise<void> {
-    return this._putBatch(`transaction:index`, entries)
+    await this._putBatch(`transaction:index`, entries)
+    await this.db.put(`transaction:latest`, entries[entries.length - 1].index)
   }
 
   public async putTransactionBatchEntries(
     entries: TransactionBatchEntry[]
   ): Promise<void> {
-    return this._putBatch(`batch:transaction:index`, entries)
+    await this._putBatch(`batch:transaction:index`, entries)
+    await this.db.put(
+      `batch:transaction:latest`,
+      entries[entries.length - 1].index
+    )
   }
 
   public async putStateRootEntries(entries: StateRootEntry[]): Promise<void> {
-    return this._putBatch(`stateroot:index`, entries)
+    await this._putBatch(`stateroot:index`, entries)
+    await this.db.put(`stateroot:latest`, entries[entries.length - 1].index)
   }
 
   public async putStateRootBatchEntries(
     entries: StateRootBatchEntry[]
   ): Promise<void> {
-    return this._putBatch(`batch:stateroot:index`, entries)
+    await this._putBatch(`batch:stateroot:index`, entries)
+    await this.db.put(
+      `batch:stateroot:latest`,
+      entries[entries.length - 1].index
+    )
   }
 
   public async getEnqueueByIndex(index: number): Promise<EnqueueEntry> {
@@ -159,6 +163,30 @@ export class TransportDB {
     index: number
   ): Promise<StateRootBatchEntry> {
     return this._get(`batch:stateroot:index`, index)
+  }
+
+  public async getLatestEnqueue(): Promise<EnqueueEntry> {
+    return this.getEnqueueByIndex(await this.db.get(`enqueue:latest`))
+  }
+
+  public async getLatestTransaction(): Promise<TransactionEntry> {
+    return this.getTransactionByIndex(await this.db.get(`transaction:latest`))
+  }
+
+  public async getLatestTransactionBatch(): Promise<TransactionBatchEntry> {
+    return this.getTransactionBatchByIndex(
+      await this.db.get(`batch:transaction:latest`)
+    )
+  }
+
+  public async getLatestStateRoot(): Promise<StateRootEntry> {
+    return this.getStateRootByIndex(await this.db.get(`stateroot:latest`))
+  }
+
+  public async getLatestStateRootBatch(): Promise<StateRootBatchEntry> {
+    return this.getStateRootBatchByIndex(
+      await this.db.get(`batch:stateroot:latest`)
+    )
   }
 
   public async getLastScannedEventBlock(event: string): Promise<number> {

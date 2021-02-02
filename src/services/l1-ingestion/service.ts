@@ -343,12 +343,15 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               .add(BigNumber.from(transactionIndex))
               .toNumber()
 
-            let decoded = {}
+            let decoded = null
+            let type = null
             try {
               const txType = txData.slice(0, 1).readUInt8()
               if (txType === TxType.EIP155) {
+                type = 'EIP155'
                 decoded = ctcCoder.eip155TxData.decode(txData.toString('hex'))
               } else {
+                type = 'ETH_SIGN'
                 decoded = ctcCoder.ethSignTxData.decode(txData.toString('hex'))
               }
             } catch (err) {
@@ -367,14 +370,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               target: '0x4200000000000000000000000000000000000005',
               origin: '0x0000000000000000000000000000000000000000',
               data: toHexString(txData),
+              queueOrigin: 'sequencer',
+              type,
+              queueIndex: null,
               decoded,
-              chainElement: {
-                isSequenced: true,
-                queueIndex: 0,
-                timestamp: context.ctxTimestamp.toNumber(),
-                blockNumber: context.ctxBlockNumber.toNumber(),
-                txData: toHexString(txData),
-              },
             })
 
             nextTxPointer += 3 + txDataLength.toNumber()
@@ -403,14 +402,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               target: enqueue.target,
               origin: enqueue.origin,
               data: enqueue.data,
-              decoded: {},
-              chainElement: {
-                isSequenced: false,
-                queueIndex: queueIndex,
-                timestamp: 0,
-                blockNumber: 0,
-                txData: '0x',
-              },
+              queueOrigin: 'l1',
+              type: 'EIP155',
+              queueIndex,
+              decoded: null,
             })
 
             enqueuedCount++
