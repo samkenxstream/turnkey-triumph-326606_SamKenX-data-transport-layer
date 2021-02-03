@@ -150,6 +150,7 @@ export const parseEventStateBatchAppended = async (
     root: event.args._batchRoot,
     prevTotalElements: event.args._prevTotalElements.toNumber(),
     extraData: event.args._extraData,
+    l1TransactionHash: l1Transaction.hash,
   }
 
   return {
@@ -254,6 +255,7 @@ export const parseEventSequencerBatchAppended = async (
     blockNumber: BigNumber.from(eventBlock.number).toNumber(),
     timestamp: BigNumber.from(eventBlock.timestamp).toNumber(),
     submitter: l1Transaction.from,
+    l1TransactionHash: l1Transaction.hash,
   }
 
   return {
