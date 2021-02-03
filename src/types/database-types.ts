@@ -36,7 +36,7 @@ export interface TransactionEntry {
   decoded: DecodedSequencerBatchTransaction | null
 }
 
-export interface TransactionBatchEntry {
+interface BatchEntry {
   index: number
   blockNumber: number
   timestamp: number
@@ -45,21 +45,14 @@ export interface TransactionBatchEntry {
   root: string
   prevTotalElements: number
   extraData: string
+  l1TransactionHash: string
 }
+
+export type TransactionBatchEntry = BatchEntry
+export type StateRootBatchEntry = BatchEntry
 
 export interface StateRootEntry {
   index: number
   batchIndex: number
   value: string
-}
-
-export interface StateRootBatchEntry {
-  index: number
-  blockNumber: number
-  timestamp: number
-  submitter: string
-  size: number
-  root: string
-  prevTotalElements: number
-  extraData: string
 }
