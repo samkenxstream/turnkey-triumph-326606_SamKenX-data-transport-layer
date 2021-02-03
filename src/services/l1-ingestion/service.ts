@@ -51,6 +51,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
+    if (!this.options.db.isOpen()) {
+      await this.options.db.open()
+    }
+
     this.state.db = new TransportDB(this.options.db)
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 
@@ -75,56 +79,67 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // unnecessary spam.
 
     while (this.running) {
-      const highestSyncedL1Block =
-        (await this.state.db.getHighestSyncedL1Block()) ||
-        this.state.startingL1BlockNumber
-      const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
-      const targetL1Block = Math.min(
-        highestSyncedL1Block + this.options.logsPerPollingInterval,
-        currentL1Block - this.options.confirmations
-      )
+      try {
+        const highestSyncedL1Block =
+          (await this.state.db.getHighestSyncedL1Block()) ||
+          this.state.startingL1BlockNumber
+        const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
+        const targetL1Block = Math.min(
+          highestSyncedL1Block + this.options.logsPerPollingInterval,
+          currentL1Block - this.options.confirmations
+        )
 
-      this.logger.info(
-        `Synchronizing events from Layer 1 (Ethereum) from block ${colors.yellow(
-          `${highestSyncedL1Block}`
-        )} to block ${colors.yellow(`${targetL1Block}`)}`
-      )
+        if (highestSyncedL1Block === targetL1Block) {
+          await sleep(this.options.pollingInterval)
+          continue
+        }
 
-      // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
-      // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
-      // really, really slow for all event types.
+        this.logger.info(
+          `Synchronizing events from Layer 1 (Ethereum) from block ${colors.yellow(
+            `${highestSyncedL1Block}`
+          )} to block ${colors.yellow(`${targetL1Block}`)}`
+        )
 
-      await this._syncEvents(
-        'OVM_CanonicalTransactionChain',
-        'TransactionEnqueued',
-        this._handleEventsTransactionEnqueued.bind(this),
-        highestSyncedL1Block,
-        targetL1Block
-      )
+        // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
+        // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
+        // really, really slow for all event types.
 
-      await this._syncEvents(
-        'OVM_CanonicalTransactionChain',
-        'SequencerBatchAppended',
-        this._handleEventsSequencerBatchAppended.bind(this),
-        highestSyncedL1Block,
-        targetL1Block
-      )
+        await this._syncEvents(
+          'OVM_CanonicalTransactionChain',
+          'TransactionEnqueued',
+          this._handleEventsTransactionEnqueued.bind(this),
+          highestSyncedL1Block,
+          targetL1Block
+        )
 
-      await this._syncEvents(
-        'OVM_StateCommitmentChain',
-        'StateBatchAppended',
-        this._handleEventsStateBatchAppended.bind(this),
-        highestSyncedL1Block,
-        targetL1Block
-      )
+        await this._syncEvents(
+          'OVM_CanonicalTransactionChain',
+          'SequencerBatchAppended',
+          this._handleEventsSequencerBatchAppended.bind(this),
+          highestSyncedL1Block,
+          targetL1Block
+        )
 
-      await this.state.db.setHighestSyncedL1Block(targetL1Block)
+        await this._syncEvents(
+          'OVM_StateCommitmentChain',
+          'StateBatchAppended',
+          this._handleEventsStateBatchAppended.bind(this),
+          highestSyncedL1Block,
+          targetL1Block
+        )
 
-      if (
-        currentL1Block - highestSyncedL1Block <
-        this.options.logsPerPollingInterval
-      ) {
-        await sleep(this.options.pollingInterval)
+        await this.state.db.setHighestSyncedL1Block(targetL1Block)
+
+        if (
+          currentL1Block - highestSyncedL1Block <
+          this.options.logsPerPollingInterval
+        ) {
+          await sleep(this.options.pollingInterval)
+        }
+      } catch (err) {
+        if (this.running) {
+          this.logger.error(`Caught an unhandled error: ${err}`)
+        }
       }
     }
   }

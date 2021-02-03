@@ -28,6 +28,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
+    if (!this.options.db.isOpen()) {
+      await this.options.db.open()
+    }
+
     this.state.db = new TransportDB(this.options.db)
     this.state.app = express()
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
