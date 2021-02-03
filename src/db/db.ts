@@ -101,6 +101,8 @@ export class TransportDB {
           data: enqueue.data,
         },
       }
+    } else {
+      return transaction
     }
   }
 
