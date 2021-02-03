@@ -19,7 +19,7 @@ import {
   EventTransactionBatchAppended,
   EventTransactionEnqueued,
   TypedEthersEvent,
-} from './event-types'
+} from '../../types'
 import {
   parseEventSequencerBatchAppended,
   parseEventStateBatchAppended,

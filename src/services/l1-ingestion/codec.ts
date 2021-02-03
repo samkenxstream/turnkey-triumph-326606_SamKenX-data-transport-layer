@@ -12,14 +12,13 @@ import {
   EventStateBatchAppended,
   EventTransactionBatchAppended,
   EventTransactionEnqueued,
-} from './event-types'
-import {
   EnqueueEntry,
   StateRootBatchEntry,
   StateRootEntry,
   TransactionBatchEntry,
   TransactionEntry,
-} from '../../db/db'
+  DecodedSequencerBatchTransaction,
+} from '../../types'
 
 export interface SequencerBatchContext {
   numSequencedTransactions: number
@@ -61,19 +60,6 @@ export const parseSequencerBatchTransaction = (
   ).toNumber()
 
   return calldata.slice(offset + 3, offset + 3 + transactionLength)
-}
-
-interface DecodedSequencerBatchTransaction {
-  sig: {
-    r: string
-    s: string
-    v: string
-  }
-  gasLimit: number
-  gasPrice: number
-  nonce: number
-  target: string
-  data: string
 }
 
 export const maybeDecodeSequencerBatchTransaction = (
