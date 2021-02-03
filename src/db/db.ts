@@ -91,6 +91,10 @@ export class TransportDB {
   constructor(public db: any) {}
 
   public async putEnqueueEntries(entries: EnqueueEntry[]): Promise<void> {
+    if (entries.length === 0) {
+      return
+    }
+
     await this._putBatch(`enqueue:index`, entries)
     await this.db.put(`enqueue:latest`, entries[entries.length - 1].index)
   }
@@ -98,6 +102,10 @@ export class TransportDB {
   public async putTransactionEntries(
     entries: TransactionEntry[]
   ): Promise<void> {
+    if (entries.length === 0) {
+      return
+    }
+
     await this._putBatch(`transaction:index`, entries)
     await this.db.put(`transaction:latest`, entries[entries.length - 1].index)
   }
@@ -105,6 +113,10 @@ export class TransportDB {
   public async putTransactionBatchEntries(
     entries: TransactionBatchEntry[]
   ): Promise<void> {
+    if (entries.length === 0) {
+      return
+    }
+
     await this._putBatch(`batch:transaction:index`, entries)
     await this.db.put(
       `batch:transaction:latest`,
@@ -113,6 +125,10 @@ export class TransportDB {
   }
 
   public async putStateRootEntries(entries: StateRootEntry[]): Promise<void> {
+    if (entries.length === 0) {
+      return
+    }
+
     await this._putBatch(`stateroot:index`, entries)
     await this.db.put(`stateroot:latest`, entries[entries.length - 1].index)
   }
@@ -120,6 +136,10 @@ export class TransportDB {
   public async putStateRootBatchEntries(
     entries: StateRootBatchEntry[]
   ): Promise<void> {
+    if (entries.length === 0) {
+      return
+    }
+
     await this._putBatch(`batch:stateroot:index`, entries)
     await this.db.put(
       `batch:stateroot:latest`,
@@ -189,21 +209,16 @@ export class TransportDB {
     )
   }
 
-  public async getLastScannedEventBlock(event: string): Promise<number> {
+  public async getHighestSyncedL1Block(): Promise<number> {
     try {
-      return BigNumber.from(
-        await this.db.get(`event:latest:${event}`)
-      ).toNumber()
+      return BigNumber.from(await this.db.get(`synced:highest`)).toNumber()
     } catch (err) {
       return null
     }
   }
 
-  public async putLastScannedEventBlock(
-    event: string,
-    block: number
-  ): Promise<void> {
-    return this.db.put(`event:latest:${event}`, block)
+  public async setHighestSyncedL1Block(block: number): Promise<void> {
+    return this.db.put(`synced:highest`, block)
   }
 
   private async _values(

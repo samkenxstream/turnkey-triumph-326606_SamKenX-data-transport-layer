@@ -117,7 +117,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getTransactionBatchByIndex(
           transaction.batchIndex
         )
-        
+
         res.json({
           transaction,
           batch,
