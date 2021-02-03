@@ -14,20 +14,21 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
   protected name = 'L1 Data Transport Service'
 
   private state: {
+    db: any
     l1IngestionService: L1IngestionService
     l1TransportServer: L1TransportServer
   } = {} as any
 
   protected async _init(): Promise<void> {
-    const db = level(this.options.db)
+    this.state.db = level(this.options.db)
     this.state.l1IngestionService = new L1IngestionService({
       ...this.options,
-      db,
+      db: this.state.db,
     })
 
     this.state.l1TransportServer = new L1TransportServer({
       ...this.options,
-      db,
+      db: this.state.db,
     })
   }
 
@@ -36,5 +37,14 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
       this.state.l1IngestionService.start(),
       this.state.l1TransportServer.start(),
     ])
+  }
+
+  protected async _stop(): Promise<void> {
+    await Promise.all([
+      this.state.l1IngestionService.stop(),
+      this.state.l1TransportServer.stop(),
+    ])
+
+    await this.state.db.close()
   }
 }

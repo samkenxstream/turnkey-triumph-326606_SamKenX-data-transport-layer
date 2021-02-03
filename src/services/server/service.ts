@@ -22,6 +22,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
   private state: {
     app: express.Express
+    server: any
     db: TransportDB
     l1RpcProvider: JsonRpcProvider
   } = {} as any
@@ -299,6 +300,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   }
 
   protected async _start(): Promise<void> {
-    this.state.app.listen(this.options.port)
+    this.state.server = this.state.app.listen(this.options.port)
+  }
+
+  protected async _stop(): Promise<void> {
+    this.state.server.close()
   }
 }

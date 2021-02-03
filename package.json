@@ -9,7 +9,8 @@
     "lint:typescript": "tslint --format stylish --project .",
     "lint:fix": "yarn run lint:fix:typescript",
     "lint:fix:typescript": "prettier --config prettier-config.json --write \"{src,exec,test}/**/*.ts\"",
-    "start": "ts-node ./src/services/run.ts"
+    "start": "ts-node ./src/services/run.ts",
+    "test": "hardhat --config test/config/hardhat.config.ts --network localhost test"
   },
   "dependencies": {
     "@eth-optimism/contracts": "^0.1.4",
@@ -25,9 +26,12 @@
     "prettier": "^2.2.1"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@types/chai": "^4.2.14",
     "@types/mocha": "^8.2.0",
+    "@types/rimraf": "^3.0.0",
     "chai": "^4.2.0",
+    "hardhat": "^2.0.8",
     "mocha": "^8.2.1",
     "rimraf": "^3.0.2",
     "ts-node": "^9.1.1",

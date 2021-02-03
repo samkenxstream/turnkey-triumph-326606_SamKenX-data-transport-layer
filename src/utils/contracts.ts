@@ -35,9 +35,7 @@ export interface OptimismContracts {
   Lib_AddressManager: Contract
   OVM_StateCommitmentChain: Contract
   OVM_CanonicalTransactionChain: Contract
-  OVM_FraudVerifier: Contract
   OVM_ExecutionManager: Contract
-  OVM_L1CrossDomainMessenger: Contract
 }
 
 export const loadOptimismContracts = async (
@@ -61,16 +59,8 @@ export const loadOptimismContracts = async (
       interface: 'iOVM_CanonicalTransactionChain',
     },
     {
-      name: 'OVM_FraudVerifier',
-      interface: 'iOVM_FraudVerifier',
-    },
-    {
       name: 'OVM_ExecutionManager',
       interface: 'iOVM_ExecutionManager',
-    },
-    {
-      name: 'OVM_L1CrossDomainMessenger',
-      interface: 'iOVM_L1CrossDomainMessenger',
     },
   ]
 
