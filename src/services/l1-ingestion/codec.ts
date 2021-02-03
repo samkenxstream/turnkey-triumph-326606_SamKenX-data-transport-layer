@@ -5,7 +5,7 @@ import {
   TxType,
 } from '@eth-optimism/core-utils'
 import { getContractInterface } from '@eth-optimism/contracts'
-import { BigNumber, ethers } from 'ethers'
+import { BigNumber } from 'ethers'
 import { Interface } from 'ethers/lib/utils'
 import {
   EventSequencerBatchAppended,
@@ -216,7 +216,7 @@ export const parseEventSequencerBatchAppended = async (
         batchIndex: eventA.args._batchIndex.toNumber(),
         blockNumber: context.blockNumber,
         timestamp: context.timestamp,
-        gasLimit: gasLimit,
+        gasLimit,
         target: '0x4200000000000000000000000000000000000005', // TODO: Maybe this needs to be configurable?
         origin: '0x0000000000000000000000000000000000000000', // TODO: Also this.
         data: toHexString(sequencerTransaction),

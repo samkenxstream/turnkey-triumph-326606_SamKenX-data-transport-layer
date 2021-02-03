@@ -1,25 +1,14 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
-import { ctcCoder, TxType } from '@eth-optimism/core-utils'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber } from 'ethers'
 import level from 'level'
 import colors from 'colors/safe'
 
 /* Imports: Internal */
-import {
-  EnqueueEntry,
-  StateRootBatchEntry,
-  StateRootEntry,
-  TransactionBatchEntry,
-  TransactionEntry,
-  TransportDB,
-} from '../../db/db'
+import { TransportDB } from '../../db/db'
 import {
   OptimismContracts,
-  fromHexString,
   sleep,
-  toHexString,
   loadOptimismContracts,
   ZERO_ADDRESS,
 } from '../../utils'
@@ -32,14 +21,9 @@ import {
   TypedEthersEvent,
 } from './event-types'
 import {
-  maybeDecodeSequencerBatchTransaction,
   parseEventSequencerBatchAppended,
   parseEventStateBatchAppended,
   parseEventTransactionEnqueued,
-  parseNumContexts,
-  parseSequencerBatchContext,
-  parseSequencerBatchTransaction,
-  parseStateRoots,
 } from './codec'
 
 export interface L1IngestionServiceOptions {
@@ -177,11 +161,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     // We're going to parse things out in ranges because the address of a given contract may have
     // changed in the range provided by the user.
-    const eventRanges: Array<{
+    const eventRanges: {
       address: string
       fromBlock: number
       toBlock: number
-    }> = []
+    }[] = []
 
     // Add a range for each address change.
     let l1BlockRangeStart = fromL1Block
@@ -308,12 +292,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           eventBlock.number,
           eventBlock.number
         )
-      ).find((batchSubmissionEvent) => {
+      ).find((foundEvent) => {
         // We might have more than one event in this block, so we specifically want to find a
         // "TransactonBatchAppended" event emitted immediately before the event in question.
         return (
-          batchSubmissionEvent.transactionHash === event.transactionHash &&
-          batchSubmissionEvent.logIndex === event.logIndex - 1
+          foundEvent.transactionHash === event.transactionHash &&
+          foundEvent.logIndex === event.logIndex - 1
         )
       }) as EventTransactionBatchAppended
 
