@@ -155,11 +155,73 @@ export class TransportDB {
     return this._get(`transaction:index`, index)
   }
 
+  public async getFullTransactionByIndex(index: number): Promise<TransactionEntry> {
+    const transaction = await this.getTransactionByIndex(index)
+    if (transaction === null) {
+      return null
+    }
+
+    if (transaction.queueOrigin === 'l1') {
+      const enqueue = await this.getEnqueueByIndex(transaction.queueIndex)
+      if (enqueue === null) {
+        return null
+      }
+
+      return {
+        ...transaction,
+        ...{
+          blockNumber: enqueue.blockNumber,
+          timestamp: enqueue.timestamp,
+          gasLimit: enqueue.gasLimit,
+          target: enqueue.target,
+          origin: enqueue.origin,
+          data: enqueue.data
+        }
+      }
+    }
+  }
+
   public async getTransactionsByIndexRange(
     start: number,
     end: number
   ): Promise<TransactionEntry[]> {
     return this._values(`transaction:index`, start, end)
+  }
+
+  public async getFullTransactionsByIndexRange(
+    start: number,
+    end: number
+  ): Promise<TransactionEntry[]> {
+    const transactions = await this.getTransactionsByIndexRange(start, end)
+    if (transactions === null) {
+      return null
+    }
+
+    const fullTransactions = []
+    for (const transaction of transactions) {
+      if (transaction.queueOrigin === 'l1') {
+        const enqueue = await this.getEnqueueByIndex(transaction.queueIndex)
+        if (enqueue === null) {
+          return null
+        }
+
+        fullTransactions.push({
+          ...transaction,
+          ...{
+            blockNumber: enqueue.blockNumber,
+            timestamp: enqueue.timestamp,
+            gasLimit: enqueue.gasLimit,
+            target: enqueue.target,
+            origin: enqueue.origin,
+            data: enqueue.data
+          }
+        })
+      } else {
+        fullTransactions.push(transaction)
+      }
+    }
+
+    return fullTransactions
   }
 
   public async getTransactionBatchByIndex(
@@ -191,6 +253,10 @@ export class TransportDB {
 
   public async getLatestTransaction(): Promise<TransactionEntry> {
     return this.getTransactionByIndex(await this.db.get(`transaction:latest`))
+  }
+
+  public async getLatestFullTransaction(): Promise<TransactionEntry> {
+    return this.getFullTransactionByIndex(await this.db.get(`transaction:latest`))
   }
 
   public async getLatestTransactionBatch(): Promise<TransactionBatchEntry> {
@@ -237,9 +303,10 @@ export class TransportDB {
           entries.push(JSON.parse(transaction))
         })
         .on('error', (err: any) => {
-          reject(err)
+          resolve(null)
         })
         .on('close', () => {
+          // TODO: Close vs end? Need to double check later.
           resolve(entries)
         })
         .on('end', () => {

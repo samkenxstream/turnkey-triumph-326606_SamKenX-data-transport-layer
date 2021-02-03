@@ -1,5 +1,9 @@
 import { ctcCoder, TxType } from '@eth-optimism/core-utils'
+import { getContractInterface } from '@eth-optimism/contracts'
 import { BigNumber } from 'ethers'
+import { Interface } from 'ethers/lib/utils'
+import { EventTransactionEnqueued } from './event-types'
+import { EnqueueEntry } from '../../db/db'
 
 export interface SequencerBatchContext {
   numSequencedTransactions: number
@@ -83,5 +87,29 @@ export const maybeDecodeSequencerBatchTransaction = (
   return {
     decoded,
     type,
+  }
+}
+
+const iOVM_StateCommitmentChain: Interface = getContractInterface('iOVM_StateCommitmentChain')
+
+export const parseStateRoots = (calldata: string): string[] => {
+  // TODO: Currently only works because we assume that `appendStateBatch` is only being
+  // called by externally owned accounts. Also, will start failing if we ever change the
+  // function signature of `appendStateBatch`. 
+  return iOVM_StateCommitmentChain.decodeFunctionData(
+    'appendStateBatch',
+    calldata
+  )[0]
+}
+
+export const parseEventTransactionEnqueued = (event: EventTransactionEnqueued): EnqueueEntry => {
+  return {
+    index: event.args._queueIndex.toNumber(),
+    target: event.args._target,
+    data: event.args._data,
+    gasLimit: event.args._gasLimit.toNumber(),
+    origin: event.args._l1TxOrigin,
+    blockNumber: event.blockNumber,
+    timestamp: event.args._timestamp.toNumber(),
   }
 }

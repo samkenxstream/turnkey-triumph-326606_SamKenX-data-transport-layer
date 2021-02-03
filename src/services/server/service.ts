@@ -81,7 +81,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     this.state.app.get('/transaction/latest', async (req, res) => {
       try {
-        const transaction = await this.state.db.getLatestTransaction()
+        const transaction = await this.state.db.getLatestFullTransaction()
+
         if (transaction === null) {
           return res.json({
             transaction: null,
@@ -106,7 +107,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this.state.app.get('/transaction/index/:index', async (req, res) => {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
-        const transaction = await this.state.db.getTransactionByIndex(index)
+        const transaction = await this.state.db.getFullTransactionByIndex(index)
         if (transaction === null) {
           return res.json({
             transaction: null,
@@ -138,11 +139,18 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           })
         }
 
-        const transactions = await this.state.db.getTransactionsByIndexRange(
+        const transactions = await this.state.db.getFullTransactionsByIndexRange(
           BigNumber.from(batch.prevTotalElements).toNumber(),
           BigNumber.from(batch.prevTotalElements).toNumber() +
             BigNumber.from(batch.size).toNumber()
         )
+
+        if (transactions === null) {
+          return res.json({
+            batch: null,
+            transactions: [],
+          })
+        }
 
         res.json({
           batch,
@@ -165,11 +173,18 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           })
         }
 
-        const transactions = await this.state.db.getTransactionsByIndexRange(
+        const transactions = await this.state.db.getFullTransactionsByIndexRange(
           BigNumber.from(batch.prevTotalElements).toNumber(),
           BigNumber.from(batch.prevTotalElements).toNumber() +
             BigNumber.from(batch.size).toNumber()
         )
+
+        if (transactions === null) {
+          return res.json({
+            batch: null,
+            transactions: [],
+          })
+        }
 
         res.json({
           batch,

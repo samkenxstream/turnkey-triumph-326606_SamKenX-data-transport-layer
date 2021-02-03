@@ -32,9 +32,11 @@ import {
 } from './event-types'
 import {
   maybeDecodeSequencerBatchTransaction,
+  parseEventTransactionEnqueued,
   parseNumContexts,
   parseSequencerBatchContext,
   parseSequencerBatchTransaction,
+  parseStateRoots,
 } from './codec'
 
 export interface L1IngestionServiceOptions {
@@ -80,6 +82,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   }
 
   protected async _start(): Promise<void> {
+    // This is our main function. It's basically just an infinite loop that attempts to stay in
+    // sync with events coming from Ethereum. Loops as quickly as it can until it approaches the
+    // tip of the chain, after which it starts waiting for a few seconds between each loop to avoid
+    // unnecessary spam.
+
     while (this.running) {
       const highestSyncedL1Block =
         (await this.state.db.getHighestSyncedL1Block()) ||
@@ -95,6 +102,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           `${highestSyncedL1Block}`
         )} to block ${colors.yellow(`${targetL1Block}`)}`
       )
+        
+      // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
+      // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
+      // really, really slow for all event types.
 
       await this._syncEvents(
         'OVM_CanonicalTransactionChain',
@@ -138,10 +149,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     fromL1Block: number,
     toL1Block: number
   ): Promise<void> {
+    // Basic sanity checks.
     if (!this.state.contracts[contractName]) {
       throw new Error(`Contract ${contractName} does not exist.`)
     }
 
+    // Basic sanity checks.
     if (!this.state.contracts[contractName].filters[eventName]) {
       throw new Error(
         `Event ${eventName} does not exist on contract ${contractName}`
@@ -247,18 +260,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   private async _handleEventsTransactionEnqueued(
     events: EventTransactionEnqueued[]
   ): Promise<void> {
-    const enqueueEntries: EnqueueEntry[] = []
-    for (const event of events) {
-      enqueueEntries.push({
-        index: event.args._queueIndex.toNumber(),
-        target: event.args._target,
-        data: event.args._data,
-        gasLimit: event.args._gasLimit.toNumber(),
-        origin: event.args._l1TxOrigin,
-        blockNumber: event.blockNumber,
-        timestamp: event.args._timestamp.toNumber(),
-      })
-    }
+    const enqueueEntries = events.map((event) => {
+      return parseEventTransactionEnqueued(event)
+    })
 
     await this.state.db.putEnqueueEntries(enqueueEntries)
   }
@@ -327,6 +331,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
       if (batchSubmissionEvent) {
         // We're dealing with a Sequencer batch.
+        // TODO: Should probably be its own function somewhere.
+        // Or maybe we want to move this into a codec?
 
         // It's easier to deal with this data if it's a Buffer.
         const calldata = fromHexString(l1Transaction.data)
@@ -356,8 +362,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               blockNumber: context.blockNumber,
               timestamp: context.timestamp,
               gasLimit: gasLimit,
-              target: '0x4200000000000000000000000000000000000005',
-              origin: '0x0000000000000000000000000000000000000000',
+              target: '0x4200000000000000000000000000000000000005', // TODO: Maybe this needs to be configurable?
+              origin: '0x0000000000000000000000000000000000000000', // TODO: Also this.
               data: toHexString(sequencerTransaction),
               queueOrigin: 'sequencer',
               type,
@@ -374,18 +380,21 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               batchSubmissionEvent.args._startingQueueIndex.toNumber() +
               enqueuedCount
 
-            const enqueue = await this.state.db.getEnqueueByIndex(queueIndex)
-
+            // Okay, so. Since events are processed in parallel, we don't know if the Enqueue
+            // event associated with this queue element has already been processed. So we'll ask
+            // the api to fetch that data for itself later on and we use fake values for some
+            // fields. The real TODO here is to make sure we fix this data structure to avoid ugly
+            // "dummy" fields.
             transactionEntries.push({
               index:
                 event.args._prevTotalElements.toNumber() + transactionIndex,
               batchIndex: event.args._batchIndex.toNumber(),
-              blockNumber: enqueue.blockNumber,
-              timestamp: enqueue.timestamp,
-              gasLimit: enqueue.gasLimit,
-              target: enqueue.target,
-              origin: enqueue.origin,
-              data: enqueue.data,
+              blockNumber: 0,
+              timestamp: 0,
+              gasLimit: 0,
+              target: '0x0000000000000000000000000000000000000000',
+              origin: '0x0000000000000000000000000000000000000000',
+              data: '0x',
               queueOrigin: 'l1',
               type: 'EIP155',
               queueIndex,
@@ -429,15 +438,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         extraData: event.args._extraData,
       })
 
-      // TODO: Currently only works because we assume that `appendStateBatch` is only being
-      // called by externally owned accounts. Also, will start failing if we ever change the
-      // function signature of `appendStateBatch`.
-      const [
-        rawStateRoots,
-      ] = this.state.contracts.OVM_StateCommitmentChain.interface.decodeFunctionData(
-        'appendStateBatch',
-        l1Transaction.data
-      )
+      // TODO: Make sure we handle the case when this parsing fails.
+      const rawStateRoots = parseStateRoots(l1Transaction.data)
 
       for (let i = 0; i < rawStateRoots.length; i++) {
         stateRootEntries.push({
