@@ -1,7 +1,6 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import express from 'express'
-import level from 'level'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 
@@ -9,7 +8,7 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { TransportDB } from '../../db/db'
 
 export interface L1TransportServerOptions {
-  db: string
+  db: any
   port: number
   confirmations: number
   l1RpcEndpoint: string
@@ -28,7 +27,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
-    this.state.db = new TransportDB(level(this.options.db))
+    this.state.db = new TransportDB(this.options.db)
     this.state.app = express()
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 

@@ -1,7 +1,6 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import level from 'level'
 import colors from 'colors/safe'
 
 /* Imports: Internal */
@@ -25,6 +24,7 @@ import {
   parseEventStateBatchAppended,
   parseEventTransactionEnqueued,
 } from './codec'
+import { BigNumber } from 'ethers'
 
 export interface L1IngestionServiceOptions {
   db: any
@@ -51,7 +51,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
-    this.state.db = new TransportDB(level(this.options.db))
+    this.state.db = new TransportDB(this.options.db)
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 
     this.state.contracts = await loadOptimismContracts(
@@ -271,7 +271,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // TODO: Not reliable. Should be part of an event instead, must be stored.
     // We're going to use this value for every Sequencer transaction, so it's easier just to get
     // the value once to avoid the extra network request for every transaction.
-    const gasLimit = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
+    const gasLimit: BigNumber = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
 
     for (const event of events) {
       // Unfortunately there isn't an easy way of getting a timestamp for this event without
@@ -311,7 +311,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         transactionBatchEntry,
         transactionEntries,
       } = await parseEventSequencerBatchAppended(
-        gasLimit,
+        gasLimit.toNumber(),
         eventBlock,
         batchSubmissionEvent,
         event

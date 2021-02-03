@@ -9,8 +9,7 @@
     "lint:typescript": "tslint --format stylish --project .",
     "lint:fix": "yarn run lint:fix:typescript",
     "lint:fix:typescript": "prettier --config prettier-config.json --write \"{src,exec,test}/**/*.ts\"",
-    "start:ingest": "ts-node ./src/services/l1-ingestion/run.ts",
-    "start:server": "ts-node ./src/services/server/run.ts"
+    "start": "ts-node ./src/services/run.ts"
   },
   "dependencies": {
     "@eth-optimism/contracts": "^0.1.4",
@@ -26,6 +25,10 @@
     "prettier": "^2.2.1"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.14",
+    "@types/mocha": "^8.2.0",
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1",
     "rimraf": "^3.0.2",
     "ts-node": "^9.1.1",
     "tslint": "^6.1.3",
