@@ -33,6 +33,7 @@ export interface L1IngestionServiceOptions {
   l1RpcEndpoint: string
   pollingInterval: number
   logsPerPollingInterval: number
+  dangerouslyCatchAllErrors?: boolean
 }
 
 export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
@@ -41,6 +42,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     confirmations: 12,
     pollingInterval: 5000,
     logsPerPollingInterval: 2000,
+    dangerouslyCatchAllErrors: false,
   }
 
   private state: {
@@ -137,8 +139,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           await sleep(this.options.pollingInterval)
         }
       } catch (err) {
-        if (this.running) {
+        if (this.running && this.options.dangerouslyCatchAllErrors) {
           this.logger.error(`Caught an unhandled error: ${err}`)
+          await sleep(this.options.pollingInterval)
+        } else {
+          // TODO: Is this the best thing to do here?
+          throw err
         }
       }
     }

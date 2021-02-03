@@ -19,6 +19,8 @@ const main = async () => {
       process.env.L1_TRANSPORT__LOGS_PER_POLLING_INTERVAL,
       10
     ),
+    dangerouslyCatchAllErrors:
+      process.env.L1_TRANSPORT__DANGEROUSLY_CATCH_ALL_ERRORS === 'true',
   })
 
   await service.start()
