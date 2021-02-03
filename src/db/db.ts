@@ -155,7 +155,9 @@ export class TransportDB {
     return this._get(`transaction:index`, index)
   }
 
-  public async getFullTransactionByIndex(index: number): Promise<TransactionEntry> {
+  public async getFullTransactionByIndex(
+    index: number
+  ): Promise<TransactionEntry> {
     const transaction = await this.getTransactionByIndex(index)
     if (transaction === null) {
       return null
@@ -175,8 +177,8 @@ export class TransportDB {
           gasLimit: enqueue.gasLimit,
           target: enqueue.target,
           origin: enqueue.origin,
-          data: enqueue.data
-        }
+          data: enqueue.data,
+        },
       }
     }
   }
@@ -213,8 +215,8 @@ export class TransportDB {
             gasLimit: enqueue.gasLimit,
             target: enqueue.target,
             origin: enqueue.origin,
-            data: enqueue.data
-          }
+            data: enqueue.data,
+          },
         })
       } else {
         fullTransactions.push(transaction)
@@ -256,7 +258,9 @@ export class TransportDB {
   }
 
   public async getLatestFullTransaction(): Promise<TransactionEntry> {
-    return this.getFullTransactionByIndex(await this.db.get(`transaction:latest`))
+    return this.getFullTransactionByIndex(
+      await this.db.get(`transaction:latest`)
+    )
   }
 
   public async getLatestTransactionBatch(): Promise<TransactionBatchEntry> {

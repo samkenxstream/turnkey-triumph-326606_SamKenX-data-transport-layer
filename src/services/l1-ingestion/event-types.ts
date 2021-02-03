@@ -34,3 +34,9 @@ export type EventStateBatchAppended = TypedEthersEvent<{
   _prevTotalElements: ethers.BigNumber
   _extraData: string
 }>
+
+export type EventSequencerBatchAppended = TypedEthersEvent<{
+  _startingQueueIndex: ethers.BigNumber
+  _numQueueElements: ethers.BigNumber
+  _totalElements: ethers.BigNumber
+}>
