@@ -351,6 +351,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             throw new Error('Attempting to append an enqueued element that does not exist')
           }
           enqueue.ctcIndex = transactionEntry.index
+          // TODO: be sure this overwrites
+          await this.state.db.putEnqueueEntries([enqueue])
         }
       }
     }
