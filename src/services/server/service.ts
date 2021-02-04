@@ -197,7 +197,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
-      '/batch/transactio/latest',
+      '/batch/transaction/latest',
       async (): Promise<TransactionBatchResponse> => {
         const batch = await this.state.db.getLatestTransactionBatch()
 
