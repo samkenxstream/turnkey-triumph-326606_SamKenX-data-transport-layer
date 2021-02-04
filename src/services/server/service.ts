@@ -26,6 +26,7 @@ export interface L1TransportServerOptions {
 export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   protected name = 'L1 Transport Server'
   protected defaultOptions = {
+    // TODO: Check if this port is used by any common software.
     port: 7878,
   }
 
@@ -37,6 +38,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
+    // TODO: I don't know if this is strictly necessary, but it's probably a good thing to do.
     if (!this.options.db.isOpen()) {
       await this.options.db.open()
     }
@@ -56,16 +58,31 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this.state.server.close()
   }
 
+  /**
+   * Initializes the server application.
+   * Do any sort of initialization here that you want. Mostly just important that
+   * `_registerAllRoutes` is called at the end.
+   */
   private _initializeApp() {
+    // TODO: Maybe pass this in as a parameter instead of creating it here?
     this.state.app = express()
     this.state.app.use(cors())
-    this._registerRoutes()
+    this._registerAllRoutes()
   }
 
+  /**
+   * Registers a route on the server.
+   * @param route Route to register.
+   * @param handler Handler called and is expected to return a JSON response.
+   */
   private _registerRoute(
     route: string,
     handler: (params: any) => Promise<any>
   ): void {
+    // TODO: Better typing on the return value of the handler function.
+    // TODO: Check for route collisions.
+    // TODO: Add a different function to allow for removing routes.
+
     this.state.app.get(route, async (req, res) => {
       try {
         return res.json(await handler(req.params))
@@ -77,7 +94,13 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     })
   }
 
-  private _registerRoutes(): void {
+  /**
+   * Registers all of the server routes we want to expose.
+   * TODO: Link to our API spec.
+   */
+  private _registerAllRoutes(): void {
+    // TODO: Maybe add doc-like comments to each of these routes?
+
     this._registerRoute(
       '/eth/context/latest',
       async (): Promise<ContextResponse> => {
