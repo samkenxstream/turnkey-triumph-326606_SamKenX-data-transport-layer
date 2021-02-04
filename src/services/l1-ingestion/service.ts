@@ -341,6 +341,18 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // TODO: We could maybe move this outside of this loop and save on db ops.
       await this.state.db.putTransactionBatchEntries([transactionBatchEntry])
       await this.state.db.putTransactionEntries(transactionEntries)
+
+      // Add an additional field to the enqueued transactions in the database
+      // if they have already been confirmed
+      for (const transactionEntry of transactionEntries) {
+        if (transactionEntry.queueOrigin === 'l1') {
+          const enqueue = await this.state.db.getEnqueueByIndex(transactionEntry.queueIndex)
+          if (enqueue === null) {
+            throw new Error('Attempting to append an enqueued element that does not exist')
+          }
+          enqueue.ctcIndex = transactionEntry.index
+        }
+      }
     }
   }
 
