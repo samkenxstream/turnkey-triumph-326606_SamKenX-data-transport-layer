@@ -1,6 +1,7 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
 import express from 'express'
+import cors from 'cors'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 
@@ -42,18 +43,24 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     }
 
     this.state.db = new TransportDB(this.options.db)
-    this.state.app = express()
     this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
 
-    this._registerRoutes()
+    this._initializeApp()
   }
 
   protected async _start(): Promise<void> {
     this.state.server = this.state.app.listen(this.options.port)
+    this.logger.info(`Server listening on port: ${this.options.port}`)
   }
 
   protected async _stop(): Promise<void> {
     this.state.server.close()
+  }
+
+  private _initializeApp() {
+    this.state.app = express()
+    this.state.app.use(cors())
+    this._registerRoutes()
   }
 
   private _registerRoute(
