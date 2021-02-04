@@ -235,21 +235,6 @@ export class TransportDB {
     }
   }
 
-  private async _putEntry<TEntry extends Indexed>(
-    key: string,
-    entry: TEntry
-  ): Promise<void> {
-    await this.db.put<TEntry>([
-      {
-        key: `${key}:latest`,
-        index: entry.index,
-        value: entry,
-      },
-    ])
-
-    await this._putLatestEntry(key, entry)
-  }
-
   private async _putEntries<TEntry extends Indexed>(
     key: string,
     entries: TEntry[]
@@ -261,7 +246,7 @@ export class TransportDB {
     await this.db.put<TEntry>(
       entries.map((entry) => {
         return {
-          key: `${key}:latest`,
+          key: `${key}:index`,
           index: entry.index,
           value: entry,
         }

@@ -308,7 +308,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
   protected async _start(): Promise<void> {
     this.state.server = this.state.app.listen(this.options.port)
-    this.logger.interesting(`Server listening on port: ${this.state.server}`)
+    this.logger.interesting(`Server listening on port: ${this.options.port}`)
   }
 
   protected async _stop(): Promise<void> {
