@@ -7,7 +7,6 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 
 /* Imports: Internal */
 import { TransportDB } from '../../db/db'
-import e from 'express'
 import {
   ContextResponse,
   EnqueueResponse,
@@ -70,7 +69,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this.state.app.get(route, async (req, res) => {
       try {
         return res.json(await handler(req.params))
-      } catch (err) {
+      } catch (e) {
         return res.status(400).json({
           error: e.toString(),
         })
