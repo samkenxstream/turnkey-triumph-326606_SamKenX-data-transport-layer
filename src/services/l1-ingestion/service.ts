@@ -4,7 +4,7 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import colors from 'colors/safe'
 
 /* Imports: Internal */
-import { TransportDB } from '../../db/db'
+import { TransportDB } from '../../db/transport-db'
 import {
   OptimismContracts,
   sleep,

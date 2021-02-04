@@ -5,7 +5,7 @@ import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 
 /* Imports: Internal */
-import { TransportDB } from '../../db/db'
+import { TransportDB } from '../../db/transport-db'
 
 export interface L1TransportServerOptions {
   db: any
