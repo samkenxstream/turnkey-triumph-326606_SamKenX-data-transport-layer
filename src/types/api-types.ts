@@ -27,3 +27,8 @@ export interface StateRootBatchResponse {
   batch: StateRootBatchEntry
   stateRoots: StateRootEntry[]
 }
+
+export interface ContextResponse {
+  blockNumber: number
+  timestamp: number
+}
