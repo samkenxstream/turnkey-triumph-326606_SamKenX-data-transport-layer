@@ -41,15 +41,17 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     this.state.app.get('/eth/context/latest', async (req, res) => {
       try {
-        const blockNumber =
-          (await this.state.l1RpcProvider.getBlockNumber()) -
-          this.options.confirmations
-        const timestamp = (await this.state.l1RpcProvider.getBlock(blockNumber))
-          .timestamp
+        const tip = await this.state.l1RpcProvider.getBlockNumber()
+        const blockNumber = Math.max(0, tip - this.options.confirmations)
+
+        const block = await this.state.l1RpcProvider.getBlock(blockNumber)
+        const timestamp = block.timestamp
+        const blockHash = block.hash
 
         res.json({
-          blockNumber,
           timestamp,
+          blockNumber,
+          blockHash,
         })
       } catch (e) {
         res.status(400)
