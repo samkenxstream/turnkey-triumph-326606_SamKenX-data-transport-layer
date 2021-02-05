@@ -1,6 +1,6 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
-import express from 'express'
+import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
@@ -72,20 +72,23 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
   /**
    * Registers a route on the server.
+   * @param method Http method type.
    * @param route Route to register.
    * @param handler Handler called and is expected to return a JSON response.
    */
   private _registerRoute(
+    method: 'get', // Just handle GET for now, but could extend this with whatever.
     route: string,
-    handler: (params: any) => Promise<any>
+    handler: (req?: Request, res?: Response) => Promise<any>
   ): void {
     // TODO: Better typing on the return value of the handler function.
     // TODO: Check for route collisions.
     // TODO: Add a different function to allow for removing routes.
 
-    this.state.app.get(route, async (req, res) => {
+    this.state.app[method](route, async (req, res) => {
       try {
-        return res.json(await handler(req.params))
+        this.logger.info(`${req.ip}: ${method.toUpperCase()} ${req.path}`)
+        return res.json(await handler(req, res))
       } catch (e) {
         return res.status(400).json({
           error: e.toString(),
@@ -102,6 +105,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     // TODO: Maybe add doc-like comments to each of these routes?
 
     this._registerRoute(
+      'get',
       '/eth/context/latest',
       async (): Promise<ContextResponse> => {
         const blockNumber =
@@ -117,6 +121,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/enqueue/latest',
       async (): Promise<EnqueueResponse> => {
         return this.state.db.getLatestEnqueue()
@@ -124,15 +129,17 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/enqueue/index/:index',
-      async (params: { index: string | number }): Promise<EnqueueResponse> => {
+      async (req): Promise<EnqueueResponse> => {
         return this.state.db.getEnqueueByIndex(
-          BigNumber.from(params.index).toNumber()
+          BigNumber.from(req.params.index).toNumber()
         )
       }
     )
 
     this._registerRoute(
+      'get',
       '/transaction/latest',
       async (): Promise<TransactionResponse> => {
         const transaction = await this.state.db.getLatestFullTransaction()
@@ -163,12 +170,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/transaction/index/:index',
-      async (params: {
-        index: string | number
-      }): Promise<TransactionResponse> => {
+      async (req): Promise<TransactionResponse> => {
         const transaction = await this.state.db.getFullTransactionByIndex(
-          BigNumber.from(params.index).toNumber()
+          BigNumber.from(req.params.index).toNumber()
         )
 
         if (transaction === null) {
@@ -197,7 +203,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
-      '/batch/transactio/latest',
+      'get',
+      '/batch/transaction/latest',
       async (): Promise<TransactionBatchResponse> => {
         const batch = await this.state.db.getLatestTransactionBatch()
 
@@ -229,12 +236,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/batch/transaction/index/:index',
-      async (params: {
-        index: number | string
-      }): Promise<TransactionBatchResponse> => {
+      async (req): Promise<TransactionBatchResponse> => {
         const batch = await this.state.db.getTransactionBatchByIndex(
-          BigNumber.from(params.index).toNumber()
+          BigNumber.from(req.params.index).toNumber()
         )
 
         if (batch === null) {
@@ -265,6 +271,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/stateroot/latest',
       async (): Promise<StateRootResponse> => {
         const stateRoot = await this.state.db.getLatestStateRoot()
@@ -294,12 +301,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/stateroot/index/:index',
-      async (params: {
-        index: number | string
-      }): Promise<StateRootResponse> => {
+      async (req): Promise<StateRootResponse> => {
         const stateRoot = await this.state.db.getStateRootByIndex(
-          BigNumber.from(params.index).toNumber()
+          BigNumber.from(req.params.index).toNumber()
         )
 
         if (stateRoot === null) {
@@ -328,6 +334,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/batch/stateroot/latest',
       async (): Promise<StateRootBatchResponse> => {
         const batch = await this.state.db.getLatestStateRootBatch()
@@ -359,12 +366,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     )
 
     this._registerRoute(
+      'get',
       '/batch/stateroot/index/:index',
-      async (params: {
-        index: number | string
-      }): Promise<StateRootBatchResponse> => {
+      async (req): Promise<StateRootBatchResponse> => {
         const batch = await this.state.db.getStateRootBatchByIndex(
-          BigNumber.from(params.index).toNumber()
+          BigNumber.from(req.params.index).toNumber()
         )
 
         if (batch === null) {
@@ -392,6 +398,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           stateRoots,
         }
       }
-    })
+    )
   }
 }
