@@ -3,12 +3,8 @@ import { isNode } from 'browser-or-node'
 
 declare var window: any
 
-let fetch: any
-if (isNode) {
-  fetch = require('node-fetch')
-} else {
-  fetch = window.fetch
-}
+/* tslint:disable-next-line:no-var-requires */
+const fetch = isNode ? require('node-fetch') : window.fetch
 
 import {
   EnqueueResponse,
