@@ -6,7 +6,7 @@ import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 
 /* Imports: Internal */
-import { TransportDB } from '../../db/db'
+import { TransportDB } from '../../db/transport-db'
 import {
   ContextResponse,
   EnqueueResponse,
@@ -392,6 +392,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           stateRoots,
         }
       }
-    )
+    })
   }
 }

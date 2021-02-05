@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "license": "MIT",
   "scripts": {
-    "clean": "rimraf ./db",
+    "clean": "rimraf ./db ./build",
     "lint": "yarn run lint:typescript",
     "lint:typescript": "tslint --format stylish --project .",
     "lint:fix": "yarn run lint:fix:typescript",
