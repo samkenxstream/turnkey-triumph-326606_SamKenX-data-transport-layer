@@ -65,8 +65,8 @@ export class TransportDB {
     await this.db.put([
       {
         key: TRANSPORT_DB_KEYS.ENQUEUE_CTC_INDEX,
-        index,
-        value: queueIndex,
+        index: queueIndex,
+        value: index,
       },
     ])
   }
