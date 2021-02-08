@@ -15,7 +15,7 @@ const DEFAULT_TEST_OPTIONS = {
   db: './db',
   port: 7878,
   confirmations: 0,
-  l1RpcEndpoint: 'http://localhost:8545',
+  l1RpcProvider: ethers.provider,
   pollingInterval: 10,
   logsPerPollingInterval: 2000,
 }
@@ -140,35 +140,37 @@ describe('[L1 Data Transport Layer]: Basic Tests', () => {
   })
 
   describe('Handling TransactionEnqueued events', () => {
-    it('should be able to handle a single event', async () => {
-      const target = '0x' + '11'.repeat(20)
-      const gasLimit = 5_000_000
-      const data = '0x' + '12'.repeat(420)
-      const response = await OVM_CanonicalTransactionChain.connect(
-        signer
-      ).enqueue(target, gasLimit, data)
+    for (const enqueues of [1, 2, 4, 8, 16, 32, 64]) {
+      it(`should be able to process ${enqueues} TransactionEnqueued events`, async () => {
+        const target = '0x1111111111111111111111111111111111111111' // Fixed target address.
+        const gasLimit = 5_000_000 // Fixed gas limit.
+        const data = '0x' + '12'.repeat(420) // Fixed data size.
 
-      const receipt = await response.wait()
-      const block = await ethers.provider.getBlock(receipt.blockNumber)
+        const blocks = []
+        for (let i = 0; i < enqueues; i++) {
+          const response = await OVM_CanonicalTransactionChain.connect(
+            signer
+          ).enqueue(target, gasLimit, data)
 
-      await sleep(1000)
-      const enqueue = await client.getEnqueueByIndex(0)
+          const receipt = await response.wait()
+          const block = await ethers.provider.getBlock(receipt.blockNumber)
+          blocks.push(block)
+        }
 
-      expect(enqueue).to.deep.equal({
-        index: 0,
-        target: target,
-        data: data,
-        gasLimit: gasLimit,
-        origin: await signer.getAddress(),
-        blockNumber: block.number,
-        timestamp: block.timestamp,
+        await sleep(1000)
+
+        for (let i = 0; i < enqueues; i++) {
+          expect(await client.getEnqueueByIndex(i)).to.deep.equal({
+            index: i,
+            target: target,
+            data: data,
+            gasLimit: gasLimit,
+            origin: await signer.getAddress(),
+            blockNumber: blocks[i].number,
+            timestamp: blocks[i].timestamp,
+          })
+        }
       })
-    })
-
-    // it('should be able to handle multiple events in the same block', async () => {})
-
-    // it('should be able to handle multiple events in different blocks', async () => {})
-
-    // it('should be able to handle events from multiple different addresses', async () => {})
+    }
   })
 })
