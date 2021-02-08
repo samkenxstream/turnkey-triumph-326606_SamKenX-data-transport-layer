@@ -68,6 +68,20 @@ export class TransportDB {
     )
   }
 
+  public async putTransactionIndexByQueueIndex(
+    index: number, queueIndex: number
+  ): Promise<void> {
+    await this.db.put(`ctc:enqueue:index:${index}`, queueIndex)
+  }
+
+  public async getTransactionIndexByQueueIndex(index: number): Promise<number> {
+    try {
+      return JSON.parse(await this.db.get(`ctc:enqueue:index:${index}`))
+    } catch (e) {
+      return null
+    }
+  }
+
   public async getEnqueueByIndex(index: number): Promise<EnqueueEntry> {
     return this._get(`enqueue:index`, index)
   }

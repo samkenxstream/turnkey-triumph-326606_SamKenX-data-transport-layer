@@ -346,13 +346,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // if they have already been confirmed
       for (const transactionEntry of transactionEntries) {
         if (transactionEntry.queueOrigin === 'l1') {
-          const enqueue = await this.state.db.getEnqueueByIndex(transactionEntry.queueIndex)
-          if (enqueue === null) {
-            throw new Error('Attempting to append an enqueued element that does not exist')
-          }
-          enqueue.ctcIndex = transactionEntry.index
-          // TODO: be sure this overwrites
-          await this.state.db.putEnqueueEntries([enqueue])
+          await this.state.db.putTransactionIndexByQueueIndex(transactionEntry.index, transactionEntry.queueIndex)
         }
       }
     }

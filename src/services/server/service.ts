@@ -77,6 +77,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       const index = BigNumber.from(req.params.index).toNumber()
       try {
         const enqueue = await this.state.db.getEnqueueByIndex(index)
+        enqueue.ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(enqueue.index)
         if (enqueue === null) {
           return res.json(null)
         }
