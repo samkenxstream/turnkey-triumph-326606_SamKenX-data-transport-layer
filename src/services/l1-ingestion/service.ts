@@ -345,6 +345,17 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // TODO: We could maybe move this outside of this loop and save on db ops.
       await this.state.db.putTransactionBatchEntries([transactionBatchEntry])
       await this.state.db.putTransactionEntries(transactionEntries)
+
+      // Add an additional field to the enqueued transactions in the database
+      // if they have already been confirmed
+      for (const transactionEntry of transactionEntries) {
+        if (transactionEntry.queueOrigin === 'l1') {
+          await this.state.db.putTransactionIndexByQueueIndex(
+            transactionEntry.index,
+            transactionEntry.queueIndex
+          )
+        }
+      }
     }
   }
 

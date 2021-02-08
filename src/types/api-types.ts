@@ -6,7 +6,9 @@ import {
   TransactionEntry,
 } from './database-types'
 
-export type EnqueueResponse = EnqueueEntry
+export type EnqueueResponse = EnqueueEntry & {
+  ctcIndex: number | null
+}
 
 export interface TransactionResponse {
   batch: TransactionBatchEntry
@@ -31,4 +33,5 @@ export interface StateRootBatchResponse {
 export interface ContextResponse {
   blockNumber: number
   timestamp: number
+  blockHash: string
 }

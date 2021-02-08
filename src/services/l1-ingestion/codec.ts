@@ -106,6 +106,9 @@ export const parseStateRoots = (calldata: string): string[] => {
   )[0]
 }
 
+// TODO: I think we should standardize on `index` and `queueIndex`
+// so that `index` is always relative to the `ctc` and `queueIndex`
+// is always relative to the queue
 export const parseEventTransactionEnqueued = (
   event: EventTransactionEnqueued
 ): EnqueueEntry => {
@@ -117,6 +120,7 @@ export const parseEventTransactionEnqueued = (
     origin: event.args._l1TxOrigin,
     blockNumber: event.blockNumber,
     timestamp: event.args._timestamp.toNumber(),
+    ctcIndex: null,
   }
 }
 

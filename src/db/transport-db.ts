@@ -13,6 +13,7 @@ import { SimpleDB } from './simple-db'
 
 const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,
+  ENQUEUE_CTC_INDEX: `ctc:enqueue`,
   TRANSACTION: `transaction`,
   TRANSACTION_BATCH: `batch:transaction`,
   STATE_ROOT: `stateroot`,
@@ -55,6 +56,23 @@ export class TransportDB {
     entries: StateRootBatchEntry[]
   ): Promise<void> {
     await this._putEntries(TRANSPORT_DB_KEYS.STATE_ROOT_BATCH, entries)
+  }
+
+  public async putTransactionIndexByQueueIndex(
+    index: number,
+    queueIndex: number
+  ): Promise<void> {
+    await this.db.put([
+      {
+        key: TRANSPORT_DB_KEYS.ENQUEUE_CTC_INDEX,
+        index,
+        value: queueIndex,
+      },
+    ])
+  }
+
+  public async getTransactionIndexByQueueIndex(index: number): Promise<number> {
+    return this.db.get(TRANSPORT_DB_KEYS.ENQUEUE_CTC_INDEX, index)
   }
 
   public async getEnqueueByIndex(index: number): Promise<EnqueueEntry> {

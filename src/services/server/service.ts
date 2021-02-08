@@ -111,14 +111,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/eth/context/latest',
       async (): Promise<ContextResponse> => {
-        const blockNumber =
-          (await this.state.l1RpcProvider.getBlockNumber()) -
-          this.options.confirmations
+        const tip = await this.state.l1RpcProvider.getBlockNumber()
+        const blockNumber = Math.max(0, tip - this.options.confirmations)
+
         const block = await this.state.l1RpcProvider.getBlock(blockNumber)
 
         return {
           blockNumber: block.number,
           timestamp: block.timestamp,
+          blockHash: block.hash,
         }
       }
     )
@@ -127,7 +128,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/enqueue/latest',
       async (): Promise<EnqueueResponse> => {
-        return this.state.db.getLatestEnqueue()
+        const enqueue = await this.state.db.getLatestEnqueue()
+        if (enqueue === null) {
+          return null
+        }
+
+        enqueue.ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
+          enqueue.index
+        )
+        return enqueue
       }
     )
 
@@ -135,9 +144,17 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/enqueue/index/:index',
       async (req): Promise<EnqueueResponse> => {
-        return this.state.db.getEnqueueByIndex(
+        const enqueue = await this.state.db.getEnqueueByIndex(
           BigNumber.from(req.params.index).toNumber()
         )
+        if (enqueue === null) {
+          return null
+        }
+
+        enqueue.ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
+          enqueue.index
+        )
+        return enqueue
       }
     )
 
