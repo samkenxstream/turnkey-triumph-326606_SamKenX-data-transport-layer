@@ -7,6 +7,9 @@ const config: HardhatUserConfig = {
     tests: '../../test',
     cache: '../temp/cache',
   },
+  mocha: {
+    timeout: 60_000,
+  },
 }
 
 export default config

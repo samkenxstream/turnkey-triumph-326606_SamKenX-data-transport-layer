@@ -4,7 +4,7 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import colors from 'colors/safe'
 
 /* Imports: Internal */
-import { TransportDB } from '../../db/db'
+import { TransportDB } from '../../db/transport-db'
 import {
   OptimismContracts,
   sleep,
@@ -30,7 +30,7 @@ export interface L1IngestionServiceOptions {
   db: any
   addressManager: string
   confirmations: number
-  l1RpcEndpoint: string
+  l1RpcProvider: string | JsonRpcProvider
   pollingInterval: number
   logsPerPollingInterval: number
   dangerouslyCatchAllErrors?: boolean
@@ -58,7 +58,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     this.state.db = new TransportDB(this.options.db)
-    this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
+
+    this.state.l1RpcProvider =
+      typeof this.options.l1RpcProvider === 'string'
+        ? new JsonRpcProvider(this.options.l1RpcProvider)
+        : this.options.l1RpcProvider
 
     this.state.contracts = await loadOptimismContracts(
       this.state.l1RpcProvider,
@@ -139,7 +143,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           await sleep(this.options.pollingInterval)
         }
       } catch (err) {
-        if (this.running && this.options.dangerouslyCatchAllErrors) {
+        if (!this.running || this.options.dangerouslyCatchAllErrors) {
           this.logger.error(`Caught an unhandled error: ${err}`)
           await sleep(this.options.pollingInterval)
         } else {
@@ -346,7 +350,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // if they have already been confirmed
       for (const transactionEntry of transactionEntries) {
         if (transactionEntry.queueOrigin === 'l1') {
-          await this.state.db.putTransactionIndexByQueueIndex(transactionEntry.index, transactionEntry.queueIndex)
+          await this.state.db.putTransactionIndexByQueueIndex(
+            transactionEntry.index,
+            transactionEntry.queueIndex
+          )
         }
       }
     }
