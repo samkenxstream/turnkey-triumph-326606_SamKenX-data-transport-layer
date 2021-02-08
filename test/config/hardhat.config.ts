@@ -6,6 +6,8 @@ const config: HardhatUserConfig = {
   paths: {
     tests: '../../test',
     cache: '../temp/cache',
+    sources: './contracts',
+    artifacts: '../temp/artifacts',
   },
   mocha: {
     timeout: 60_000,
