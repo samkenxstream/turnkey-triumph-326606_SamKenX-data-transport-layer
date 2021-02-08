@@ -26,7 +26,7 @@ GET /eth/context/latest
 
 #### Response
 
-```json
+```ts
 {
     "blockNumber": number,
     "timestamp": number
@@ -43,7 +43,7 @@ GET /enqueue/index/{index: number}
 
 #### Response
 
-```json
+```ts
 {
   "index": number,
   "target": string,
@@ -65,7 +65,7 @@ GET /transaction/index/{index: number}
 
 #### Response
 
-```json
+```ts
 {
     "transaction": {
         "index": number,
@@ -116,7 +116,7 @@ GET /batch/transaction/index/{index: number}
 
 #### Response
 
-```json
+```ts
 {
     "batch": {
         "index": number,
@@ -170,7 +170,7 @@ GET /stateroot/index/{index: number}
 
 #### Response
 
-```json
+```ts
 {
     "stateRoot": {
         "index": number,
@@ -201,7 +201,7 @@ GET /batch/stateroot/index/{index: number}
 
 #### Response
 
-```json
+```ts
 {
     "batch": {
         "index": number,
