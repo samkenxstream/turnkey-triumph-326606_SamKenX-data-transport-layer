@@ -12,7 +12,7 @@ const main = async () => {
     db: process.env.L1_TRANSPORT__DB_PATH,
     port: parseInt(process.env.L1_TRANSPORT__SERVER_PORT, 10),
     confirmations: parseInt(process.env.L1_TRANSPORT__CONFIRMATIONS, 10),
-    l1RpcEndpoint: process.env.L1_TRANSPORT__L1_RPC_ENDPOINT,
+    l1RpcProvider: process.env.L1_TRANSPORT__L1_RPC_ENDPOINT,
     addressManager: process.env.L1_TRANSPORT__ADDRESS_MANAGER,
     pollingInterval: parseInt(process.env.L1_TRANSPORT__POLLING_INTERVAL, 10),
     logsPerPollingInterval: parseInt(

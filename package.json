@@ -10,7 +10,7 @@
     "lint:fix": "yarn run lint:fix:typescript",
     "lint:fix:typescript": "prettier --config prettier-config.json --write \"{src,exec,test}/**/*.ts\"",
     "start": "ts-node ./src/services/run.ts",
-    "test": "hardhat --config test/config/hardhat.config.ts --network localhost test",
+    "test": "hardhat --config test/config/hardhat.config.ts test",
     "build": "tsc -p ."
   },
   "dependencies": {

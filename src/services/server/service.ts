@@ -20,7 +20,7 @@ export interface L1TransportServerOptions {
   db: any
   port: number
   confirmations: number
-  l1RpcEndpoint: string
+  l1RpcProvider: string | JsonRpcProvider
 }
 
 export class L1TransportServer extends BaseService<L1TransportServerOptions> {
@@ -44,7 +44,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     }
 
     this.state.db = new TransportDB(this.options.db)
-    this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
+    this.state.l1RpcProvider =
+      typeof this.options.l1RpcProvider === 'string'
+        ? new JsonRpcProvider(this.options.l1RpcProvider)
+        : this.options.l1RpcProvider
 
     this._initializeApp()
   }
