@@ -3,7 +3,8 @@ import { expect } from '../setup'
 /* Imports: External */
 import rimraf from 'rimraf'
 import { getContractFactory } from '@eth-optimism/contracts'
-import { Contract, Signer } from 'ethers'
+import { encodeAppendSequencerBatch, ctcCoder } from '@eth-optimism/core-utils'
+import { Contract, providers, Signer } from 'ethers'
 import { ethers } from 'hardhat'
 
 /* Imports: Internal */
@@ -111,6 +112,11 @@ describe('[L1 Data Transport Layer]: Basic Tests', () => {
       'OVM_ExecutionManager',
       OVM_ExecutionManager.address
     )
+
+    await Lib_AddressManager.setAddress(
+      'OVM_Sequencer',
+      await signer.getAddress()
+    )
   })
 
   let service: L1DataTransportService
@@ -141,7 +147,7 @@ describe('[L1 Data Transport Layer]: Basic Tests', () => {
 
   describe('Handling TransactionEnqueued events', () => {
     for (const enqueues of [1, 2, 4, 8, 16, 32, 64]) {
-      it(`should be able to process ${enqueues} TransactionEnqueued events`, async () => {
+      it(`should be able to process ${enqueues} TransactionEnqueued event(s)`, async () => {
         const target = '0x1111111111111111111111111111111111111111' // Fixed target address.
         const gasLimit = 5_000_000 // Fixed gas limit.
         const data = '0x' + '12'.repeat(420) // Fixed data size.
@@ -171,6 +177,105 @@ describe('[L1 Data Transport Layer]: Basic Tests', () => {
           })
         }
       })
+    }
+  })
+
+  describe('Handling SequencerBatchAppended events', () => {
+    for (const numBatches of [1, 2, 4]) {
+      for (const batchLength of [1, 2, 4, 8, 16, 32]) {
+        it(`should be able to process ${numBatches} batch(es) with ${batchLength} EIP155 *sequencer* transactions(s) per batch`, async () => {
+          const DEFAULT_TRANSACTION = {
+            sig: {
+              r:
+                '0x1111111111111111111111111111111111111111111111111111111111111111',
+              s:
+                '0x2222222222222222222222222222222222222222222222222222222222222222',
+              v: 0,
+            },
+            gasLimit: 5_000_000,
+            gasPrice: 0,
+            nonce: 0,
+            target: '0x3333333333333333333333333333333333333333',
+            data: '0x' + '44'.repeat(420),
+          }
+
+          const contextBlocks = []
+          const batchBlocks = []
+          const transactionHashes = []
+          for (let i = 0; i < numBatches; i++) {
+            const block = await ethers.provider.getBlock('latest')
+            contextBlocks.push(block)
+
+            const calldata =
+              OVM_CanonicalTransactionChain.interface.getSighash(
+                'appendSequencerBatch'
+              ) +
+              encodeAppendSequencerBatch({
+                shouldStartAtBatch: i * batchLength,
+                totalElementsToAppend: batchLength,
+                contexts: [
+                  {
+                    numSequencedTransactions: batchLength,
+                    numSubsequentQueueTransactions: 0,
+                    timestamp: block.timestamp,
+                    blockNumber: block.number,
+                  },
+                ],
+                transactions: [...Array(batchLength)].map(() => {
+                  return ctcCoder.eip155TxData.encode(DEFAULT_TRANSACTION)
+                }),
+              })
+
+            const result = await signer.sendTransaction({
+              to: OVM_CanonicalTransactionChain.address,
+              data: calldata,
+            })
+
+            const receipt = await result.wait()
+            transactionHashes.push(receipt.transactionHash)
+            batchBlocks.push(
+              await ethers.provider.getBlock(receipt.blockNumber)
+            )
+          }
+
+          await sleep(1000)
+
+          for (let i = 0; i < numBatches; i++) {
+            for (let j = 0; j < batchLength; j++) {
+              // Using `containSubset` here because the `batch.root` property is extremely
+              // difficult to calculate on the fly.
+              expect(
+                await client.getTransactionByIndex(i * batchLength + j)
+              ).to.containSubset({
+                transaction: {
+                  index: i * batchLength + j,
+                  batchIndex: i,
+                  blockNumber: contextBlocks[i].number,
+                  timestamp: contextBlocks[i].timestamp,
+                  gasLimit: 8_000_000,
+                  target: '0x4200000000000000000000000000000000000005',
+                  origin: '0x0000000000000000000000000000000000000000',
+                  data: ctcCoder.eip155TxData.encode(DEFAULT_TRANSACTION),
+                  queueOrigin: 'sequencer',
+                  type: 'EIP155',
+                  queueIndex: null,
+                  decoded: DEFAULT_TRANSACTION,
+                },
+                batch: {
+                  index: i,
+                  size: batchLength,
+                  prevTotalElements: i * batchLength,
+                  extraData: '0x',
+                  blockNumber: batchBlocks[i].number,
+                  timestamp: batchBlocks[i].timestamp,
+                  submitter: await signer.getAddress(),
+                  l1TransactionHash: transactionHashes[i],
+                },
+              })
+            }
+          }
+        })
+      }
     }
   })
 })
