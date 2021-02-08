@@ -168,6 +168,7 @@ describe('[L1 Data Transport Layer]: Basic Tests', () => {
             origin: await signer.getAddress(),
             blockNumber: blocks[i].number,
             timestamp: blocks[i].timestamp,
+            ctcIndex: null
           })
         }
       })
