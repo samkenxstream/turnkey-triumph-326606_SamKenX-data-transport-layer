@@ -80,14 +80,14 @@ GET /transaction/index/{index: number}
         "type": string | null,
         "decoded": {
             "sig": {
-                "r": string
-                "s": string
+                "r": string,
+                "s": string,
                 "v": string
             },
-            "gasLimit": number
-            "gasPrice": number
-            "nonce": number
-            "target": string
+            "gasLimit": number,
+            "gasPrice": number,
+            "nonce": number,
+            "target": string,
             "data": string
         } | null,
         "queueIndex": number | null,
@@ -143,14 +143,14 @@ GET /batch/transaction/index/{index: number}
         "type": string | null,
         "decoded": {
             "sig": {
-                "r": string
-                "s": string
+                "r": string,
+                "s": string,
                 "v": string
             },
-            "gasLimit": number
-            "gasPrice": number
-            "nonce": number
-            "target": string
+            "gasLimit": number,
+            "gasPrice": number,
+            "nonce": number,
+            "target": string,
             "data": string
         } | null,
         "queueIndex": number | null,
