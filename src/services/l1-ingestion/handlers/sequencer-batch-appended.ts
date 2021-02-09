@@ -51,8 +51,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       const OVM_CanonicalTransactionChain = getContractFactory(
         'OVM_CanonicalTransactionChain'
       )
-        .connect(l1RpcProvider)
         .attach(event.address)
+        .connect(l1RpcProvider)
 
       const batchSubmissionEvent = (
         await OVM_CanonicalTransactionChain.queryFilter(
@@ -175,10 +175,10 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
 
       const transactionBatchEntry = {
-        index: fixedEvent.extraData.batchIndex,
+        index: fixedEvent.extraData.batchIndex.toNumber(),
         root: fixedEvent.extraData.batchRoot,
-        size: fixedEvent.extraData.batchSize,
-        prevTotalElements: fixedEvent.extraData.prevTotalElements,
+        size: fixedEvent.extraData.batchSize.toNumber(),
+        prevTotalElements: fixedEvent.extraData.prevTotalElements.toNumber(),
         extraData: fixedEvent.extraData.batchExtraData,
         blockNumber: fixedEvent.extraData.blockNumber,
         timestamp: fixedEvent.extraData.timestamp,
