@@ -220,12 +220,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       if (events.length > 0) {
         const tick = Date.now()
 
-        await handlers.storeEventsHandler(
-          await handlers.parseEventsHandler(
-            await handlers.fixEventsHandler(events, this.state.l1RpcProvider)
-          ),
-          this.state.db
-        )
+        for (const event of events) {
+          await handlers.storeEventsHandler(
+            await handlers.parseEventsHandler(
+              await handlers.fixEventsHandler(event, this.state.l1RpcProvider)
+            ),
+            this.state.db
+          )
+        }
 
         const tock = Date.now()
 

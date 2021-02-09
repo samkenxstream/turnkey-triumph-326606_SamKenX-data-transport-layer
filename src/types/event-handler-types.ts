@@ -3,24 +3,24 @@ import { TransportDB } from '../db/transport-db'
 import { TypedEthersEvent } from './event-types'
 
 export type FixEventsHandler<TEvent, TExtraData> = (
-  events: TypedEthersEvent<any>[],
+  event: TypedEthersEvent<any>,
   l1RpcProvider: JsonRpcProvider
-) => Promise<
-  {
-    event: TEvent
-    extraData: TExtraData
-  }[]
->
+) => Promise<{
+  event: TEvent
+  extraData: TExtraData
+}>
 
-export type ParseEventsHandler<TEvent, TExtraData, TDatabaseStruct> = (
-  fixedEvents: {
-    event: TEvent
-    extraData: TExtraData
-  }[]
-) => Promise<TDatabaseStruct[]>
+export type ParseEventsHandler<
+  TEvent,
+  TExtraData,
+  TDatabaseStruct
+> = (fixedEvent: {
+  event: TEvent
+  extraData: TExtraData
+}) => Promise<TDatabaseStruct>
 
 export type StoreEventsHandler<TDatabaseStruct> = (
-  entries: TDatabaseStruct[],
+  entry: TDatabaseStruct,
   db: TransportDB
 ) => Promise<void>
 
