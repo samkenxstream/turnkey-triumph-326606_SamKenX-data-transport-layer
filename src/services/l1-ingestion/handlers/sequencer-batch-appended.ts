@@ -195,7 +195,22 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     return parsedEvents
   },
   storeEventsHandler: async (entries, db) => {
-    // TODO
+    for (const entry of entries) {
+      // TODO: We could maybe move this outside of this loop and save on db ops.
+      await db.putTransactionBatchEntries([entry.transactionBatchEntry])
+      await db.putTransactionEntries(entry.transactionEntries)
+
+      // Add an additional field to the enqueued transactions in the database
+      // if they have already been confirmed
+      for (const transactionEntry of entry.transactionEntries) {
+        if (transactionEntry.queueOrigin === 'l1') {
+          await db.putTransactionIndexByQueueIndex(
+            transactionEntry.index,
+            transactionEntry.queueIndex
+          )
+        }
+      }
+    }
   },
 }
 
