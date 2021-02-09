@@ -1,6 +1,3 @@
-/* Imports: External */
-import { BigNumber } from 'ethers'
-
 /* Imports: Internal */
 import {
   EnqueueEntry,

@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv'
 import { L1DataTransportService } from './main/service'
 
 // TODO: Maybe throw this into its own service instead of doing this here.
-const main = async () => {
+;(async () => {
   dotenv.config()
 
   const service = new L1DataTransportService({
@@ -24,6 +24,4 @@ const main = async () => {
   })
 
   await service.start()
-}
-
-main()
+})()
