@@ -15,6 +15,7 @@ import {
   TransactionBatchResponse,
   TransactionResponse,
 } from '../../types'
+import { ctcCoder } from '@eth-optimism/core-utils'
 
 export interface L1TransportServerOptions {
   db: any
@@ -133,10 +134,14 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           return null
         }
 
-        enqueue.ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
+        const ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
           enqueue.index
         )
-        return enqueue
+
+        return {
+          ...enqueue,
+          ctcIndex,
+        }
       }
     )
 
@@ -151,10 +156,14 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           return null
         }
 
-        enqueue.ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
+        const ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
           enqueue.index
         )
-        return enqueue
+
+        return {
+          ...enqueue,
+          ctcIndex,
+        }
       }
     )
 

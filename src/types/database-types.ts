@@ -19,7 +19,6 @@ export interface EnqueueEntry {
   origin: string
   blockNumber: number
   timestamp: number
-  ctcIndex: number | null
 }
 
 export interface TransactionEntry {

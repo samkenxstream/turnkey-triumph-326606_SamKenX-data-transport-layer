@@ -5,38 +5,38 @@ export type TypedEthersEvent<T> = ethers.Event & {
   args: T
 }
 
-export type EventAddressSet = TypedEthersEvent<{
+export interface EventArgsAddressSet {
   _name: string
   _newAddress: string
-}>
+}
 
-export type EventTransactionEnqueued = TypedEthersEvent<{
+export interface EventArgsTransactionEnqueued {
   _l1TxOrigin: string
   _target: string
   _gasLimit: ethers.BigNumber
   _data: string
   _queueIndex: ethers.BigNumber
   _timestamp: ethers.BigNumber
-}>
+}
 
-export type EventTransactionBatchAppended = TypedEthersEvent<{
+export interface EventArgsTransactionBatchAppended {
   _batchIndex: ethers.BigNumber
   _batchRoot: string
   _batchSize: ethers.BigNumber
   _prevTotalElements: ethers.BigNumber
   _extraData: string
-}>
+}
 
-export type EventStateBatchAppended = TypedEthersEvent<{
+export interface EventArgsStateBatchAppended {
   _batchIndex: ethers.BigNumber
   _batchRoot: string
   _batchSize: ethers.BigNumber
   _prevTotalElements: ethers.BigNumber
   _extraData: string
-}>
+}
 
-export type EventSequencerBatchAppended = TypedEthersEvent<{
+export interface EventArgsSequencerBatchAppended {
   _startingQueueIndex: ethers.BigNumber
   _numQueueElements: ethers.BigNumber
   _totalElements: ethers.BigNumber
-}>
+}

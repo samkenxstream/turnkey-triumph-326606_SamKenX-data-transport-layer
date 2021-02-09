@@ -1,16 +1,17 @@
 /* Imports: External */
 import { getContractFactory } from '@eth-optimism/contracts'
+import { BigNumber } from 'ethers'
 
 /* Imports: Internal */
 import {
-  EventStateBatchAppended,
+  EventArgsStateBatchAppended,
   StateRootBatchEntry,
   StateRootEntry,
   EventHandlerSet,
 } from '../../../types'
 
 export const handleEventsStateBatchAppended: EventHandlerSet<
-  EventStateBatchAppended,
+  EventArgsStateBatchAppended,
   {
     timestamp: number
     blockNumber: number
@@ -23,48 +24,47 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
     stateRootEntries: StateRootEntry[]
   }
 > = {
-  fixEventsHandler: async (event) => {
+  getExtraData: async (event) => {
     const eventBlock = await event.getBlock()
     const l1Transaction = await event.getTransaction()
 
     return {
-      event,
-      extraData: {
-        timestamp: eventBlock.timestamp,
-        blockNumber: eventBlock.number,
-        submitter: l1Transaction.from,
-        l1TransactionHash: l1Transaction.hash,
-        l1TransactionData: l1Transaction.data,
-      },
+      timestamp: eventBlock.timestamp,
+      blockNumber: eventBlock.number,
+      submitter: l1Transaction.from,
+      l1TransactionHash: l1Transaction.hash,
+      l1TransactionData: l1Transaction.data,
     }
   },
-  parseEventsHandler: async (fixedEvent) => {
+  parseEvent: async (event, extraData) => {
     const stateRoots = getContractFactory(
       'OVM_StateCommitmentChain'
     ).interface.decodeFunctionData(
       'appendStateBatch',
-      fixedEvent.extraData.l1TransactionData
+      extraData.l1TransactionData
     )[0]
 
     const stateRootEntries: StateRootEntry[] = []
     for (let i = 0; i < stateRoots.length; i++) {
       stateRootEntries.push({
-        index: fixedEvent.event.args._prevTotalElements.toNumber() + i,
-        batchIndex: fixedEvent.event.args._batchIndex.toNumber(),
+        index: event.args._prevTotalElements.add(BigNumber.from(i)).toNumber(),
+        batchIndex: event.args._batchIndex.toNumber(),
         value: stateRoots[i],
       })
     }
 
-    const stateRootBatchEntry = {
-      index: fixedEvent.event.args._batchIndex.toNumber(),
-      blockNumber: fixedEvent.extraData.blockNumber,
-      timestamp: fixedEvent.extraData.timestamp,
-      submitter: fixedEvent.extraData.submitter,
-      size: fixedEvent.event.args._batchSize.toNumber(),
-      root: fixedEvent.event.args._batchRoot,
-      prevTotalElements: fixedEvent.event.args._prevTotalElements.toNumber(),
-      extraData: fixedEvent.event.args._extraData,
-      l1TransactionHash: fixedEvent.extraData.l1TransactionHash,
+    // Using .toNumber() here and in other places because I want to move everything to use
+    // BigNumber + hex, but that'll take a lot of work. This makes it easier in the future.
+    const stateRootBatchEntry: StateRootBatchEntry = {
+      index: event.args._batchIndex.toNumber(),
+      blockNumber: BigNumber.from(extraData.blockNumber).toNumber(),
+      timestamp: BigNumber.from(extraData.timestamp).toNumber(),
+      submitter: extraData.submitter,
+      size: event.args._batchSize.toNumber(),
+      root: event.args._batchRoot,
+      prevTotalElements: event.args._prevTotalElements.toNumber(),
+      extraData: event.args._extraData,
+      l1TransactionHash: extraData.l1TransactionHash,
     }
 
     return {
@@ -72,7 +72,7 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       stateRootEntries,
     }
   },
-  storeEventsHandler: async (entry, db) => {
+  storeEvent: async (entry, db) => {
     await db.putStateRootBatchEntries([entry.stateRootBatchEntry])
     await db.putStateRootEntries(entry.stateRootEntries)
   },

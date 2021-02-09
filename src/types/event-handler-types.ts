@@ -2,30 +2,23 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { TransportDB } from '../db/transport-db'
 import { TypedEthersEvent } from './event-types'
 
-export type FixEventsHandler<TEvent, TExtraData> = (
-  event: TypedEthersEvent<any>,
-  l1RpcProvider: JsonRpcProvider
-) => Promise<{
-  event: TEvent
-  extraData: TExtraData
-}>
+export type GetExtraDataHandler<TEventArgs, TExtraData> = (
+  event?: TypedEthersEvent<TEventArgs>,
+  l1RpcProvider?: JsonRpcProvider
+) => Promise<TExtraData>
 
-export type ParseEventsHandler<
-  TEvent,
-  TExtraData,
-  TDatabaseStruct
-> = (fixedEvent: {
-  event: TEvent
+export type ParseEventHandler<TEventArgs, TExtraData, TParsedEvent> = (
+  event: TypedEthersEvent<TEventArgs>,
   extraData: TExtraData
-}) => Promise<TDatabaseStruct>
+) => Promise<TParsedEvent>
 
-export type StoreEventsHandler<TDatabaseStruct> = (
-  entry: TDatabaseStruct,
+export type StoreEventHandler<TParsedEvent> = (
+  parsedEvent: TParsedEvent,
   db: TransportDB
 ) => Promise<void>
 
-export interface EventHandlerSet<TEvent, TExtraData, TDatabaseStruct> {
-  fixEventsHandler: FixEventsHandler<TEvent, TExtraData>
-  parseEventsHandler: ParseEventsHandler<TEvent, TExtraData, TDatabaseStruct>
-  storeEventsHandler: StoreEventsHandler<TDatabaseStruct>
+export interface EventHandlerSet<TEventArgs, TExtraData, TParsedEvent> {
+  getExtraData: GetExtraDataHandler<TEventArgs, TExtraData>
+  parseEvent: ParseEventHandler<TEventArgs, TExtraData, TParsedEvent>
+  storeEvent: StoreEventHandler<TParsedEvent>
 }

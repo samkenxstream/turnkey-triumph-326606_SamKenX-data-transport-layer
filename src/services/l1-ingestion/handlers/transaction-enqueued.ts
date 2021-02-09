@@ -1,34 +1,32 @@
 /* Imports: Internal */
+import { BigNumber } from 'ethers'
 import {
   EnqueueEntry,
-  EventTransactionEnqueued,
+  EventArgsTransactionEnqueued,
   EventHandlerSet,
 } from '../../../types'
 
 export const handleEventsTransactionEnqueued: EventHandlerSet<
-  EventTransactionEnqueued,
+  EventArgsTransactionEnqueued,
   null,
   EnqueueEntry
 > = {
-  fixEventsHandler: async (event) => {
-    return {
-      event,
-      extraData: null,
-    }
+  getExtraData: async () => {
+    return null
   },
-  parseEventsHandler: async (fixedEvent) => {
+  parseEvent: async (event) => {
     return {
-      index: fixedEvent.event.args._queueIndex.toNumber(),
-      target: fixedEvent.event.args._target,
-      data: fixedEvent.event.args._data,
-      gasLimit: fixedEvent.event.args._gasLimit.toNumber(),
-      origin: fixedEvent.event.args._l1TxOrigin,
-      blockNumber: fixedEvent.event.blockNumber,
-      timestamp: fixedEvent.event.args._timestamp.toNumber(),
+      index: event.args._queueIndex.toNumber(),
+      target: event.args._target,
+      data: event.args._data,
+      gasLimit: event.args._gasLimit.toNumber(),
+      origin: event.args._l1TxOrigin,
+      blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+      timestamp: event.args._timestamp.toNumber(),
       ctcIndex: null,
     }
   },
-  storeEventsHandler: async (entry, db) => {
+  storeEvent: async (entry, db) => {
     await db.putEnqueueEntries([entry])
   },
 }

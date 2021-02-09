@@ -11,7 +11,11 @@ import {
   loadOptimismContracts,
   ZERO_ADDRESS,
 } from '../../utils'
-import { EventAddressSet, TypedEthersEvent, EventHandlerSet } from '../../types'
+import {
+  EventArgsAddressSet,
+  TypedEthersEvent,
+  EventHandlerSet,
+} from '../../types'
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
 import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
 import { handleEventsStateBatchAppended } from './handlers/state-batch-appended'
@@ -170,7 +174,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.state.contracts.Lib_AddressManager.filters.AddressSet(),
       fromL1Block,
       toL1Block
-    )) as EventAddressSet[]).filter((event) => {
+    )) as TypedEthersEvent<EventArgsAddressSet>[]).filter((event) => {
       return event.args._name === contractName
     })
 
@@ -221,9 +225,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const tick = Date.now()
 
         for (const event of events) {
-          await handlers.storeEventsHandler(
-            await handlers.parseEventsHandler(
-              await handlers.fixEventsHandler(event, this.state.l1RpcProvider)
+          await handlers.storeEvent(
+            await handlers.parseEvent(
+              event,
+              await handlers.getExtraData(event, this.state.l1RpcProvider)
             ),
             this.state.db
           )

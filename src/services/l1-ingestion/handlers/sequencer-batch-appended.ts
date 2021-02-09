@@ -11,14 +11,14 @@ import {
 /* Imports: Internal */
 import {
   DecodedSequencerBatchTransaction,
-  EventSequencerBatchAppended,
+  EventArgsSequencerBatchAppended,
   TransactionBatchEntry,
   TransactionEntry,
   EventHandlerSet,
 } from '../../../types'
 
 export const handleEventsSequencerBatchAppended: EventHandlerSet<
-  EventSequencerBatchAppended,
+  EventArgsSequencerBatchAppended,
   {
     timestamp: number
     blockNumber: number
@@ -39,7 +39,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     transactionEntries: TransactionEntry[]
   }
 > = {
-  fixEventsHandler: async (event, l1RpcProvider) => {
+  getExtraData: async (event, l1RpcProvider) => {
     const l1Transaction = await event.getTransaction()
     const eventBlock = await event.getBlock()
 
@@ -74,28 +74,25 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     }
 
     return {
-      event,
-      extraData: {
-        timestamp: eventBlock.timestamp,
-        blockNumber: eventBlock.number,
-        submitter: l1Transaction.from,
-        l1TransactionHash: l1Transaction.hash,
-        l1TransactionData: l1Transaction.data,
-        gasLimit: 8_000_000, // Fixed to this currently.
+      timestamp: eventBlock.timestamp,
+      blockNumber: eventBlock.number,
+      submitter: l1Transaction.from,
+      l1TransactionHash: l1Transaction.hash,
+      l1TransactionData: l1Transaction.data,
+      gasLimit: 8_000_000, // Fixed to this currently.
 
-        prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
-        batchIndex: batchSubmissionEvent.args._batchIndex,
-        batchSize: batchSubmissionEvent.args._batchSize,
-        batchRoot: batchSubmissionEvent.args._batchRoot,
-        batchExtraData: batchSubmissionEvent.args._extraData,
-      },
+      prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
+      batchIndex: batchSubmissionEvent.args._batchIndex,
+      batchSize: batchSubmissionEvent.args._batchSize,
+      batchRoot: batchSubmissionEvent.args._batchRoot,
+      batchExtraData: batchSubmissionEvent.args._extraData,
     }
   },
-  parseEventsHandler: async (fixedEvent) => {
+  parseEvent: async (event, extraData) => {
     const transactionEntries: TransactionEntry[] = []
 
     // It's easier to deal with this data if it's a Buffer.
-    const calldata = fromHexString(fixedEvent.extraData.l1TransactionData)
+    const calldata = fromHexString(extraData.l1TransactionData)
 
     const numContexts = BigNumber.from(calldata.slice(12, 15)).toNumber()
     let transactionIndex = 0
@@ -116,13 +113,13 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         )
 
         transactionEntries.push({
-          index:
-            fixedEvent.extraData.prevTotalElements.toNumber() +
-            transactionIndex,
-          batchIndex: fixedEvent.extraData.batchIndex.toNumber(),
-          blockNumber: context.blockNumber,
-          timestamp: context.timestamp,
-          gasLimit: fixedEvent.extraData.gasLimit,
+          index: extraData.prevTotalElements
+            .add(BigNumber.from(transactionIndex))
+            .toNumber(),
+          batchIndex: extraData.batchIndex.toNumber(),
+          blockNumber: BigNumber.from(context.blockNumber).toNumber(),
+          timestamp: BigNumber.from(context.timestamp).toNumber(),
+          gasLimit: BigNumber.from(extraData.gasLimit).toNumber(),
           target: '0x4200000000000000000000000000000000000005', // TODO: Maybe this needs to be configurable?
           origin: '0x0000000000000000000000000000000000000000', // TODO: Also this.
           data: toHexString(sequencerTransaction),
@@ -137,8 +134,9 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
 
       for (let j = 0; j < context.numSubsequentQueueTransactions; j++) {
-        const queueIndex =
-          fixedEvent.event.args._startingQueueIndex.toNumber() + enqueuedCount
+        const queueIndex = event.args._startingQueueIndex.add(
+          BigNumber.from(enqueuedCount)
+        )
 
         // Okay, so. Since events are processed in parallel, we don't know if the Enqueue
         // event associated with this queue element has already been processed. So we'll ask
@@ -146,19 +144,19 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         // fields. The real TODO here is to make sure we fix this data structure to avoid ugly
         // "dummy" fields.
         transactionEntries.push({
-          index:
-            fixedEvent.extraData.prevTotalElements.toNumber() +
-            transactionIndex,
-          batchIndex: fixedEvent.extraData.batchIndex.toNumber(),
-          blockNumber: 0,
-          timestamp: 0,
-          gasLimit: 0,
+          index: extraData.prevTotalElements
+            .add(BigNumber.from(transactionIndex))
+            .toNumber(),
+          batchIndex: extraData.batchIndex.toNumber(),
+          blockNumber: BigNumber.from(0).toNumber(),
+          timestamp: BigNumber.from(0).toNumber(),
+          gasLimit: BigNumber.from(0).toNumber(),
           target: '0x0000000000000000000000000000000000000000',
           origin: '0x0000000000000000000000000000000000000000',
           data: '0x',
           queueOrigin: 'l1',
           type: 'EIP155',
-          queueIndex,
+          queueIndex: queueIndex.toNumber(),
           decoded: null,
         })
 
@@ -167,16 +165,16 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
     }
 
-    const transactionBatchEntry = {
-      index: fixedEvent.extraData.batchIndex.toNumber(),
-      root: fixedEvent.extraData.batchRoot,
-      size: fixedEvent.extraData.batchSize.toNumber(),
-      prevTotalElements: fixedEvent.extraData.prevTotalElements.toNumber(),
-      extraData: fixedEvent.extraData.batchExtraData,
-      blockNumber: fixedEvent.extraData.blockNumber,
-      timestamp: fixedEvent.extraData.timestamp,
-      submitter: fixedEvent.extraData.submitter,
-      l1TransactionHash: fixedEvent.extraData.l1TransactionHash,
+    const transactionBatchEntry: TransactionBatchEntry = {
+      index: extraData.batchIndex.toNumber(),
+      root: extraData.batchRoot,
+      size: extraData.batchSize.toNumber(),
+      prevTotalElements: extraData.prevTotalElements.toNumber(),
+      extraData: extraData.batchExtraData,
+      blockNumber: BigNumber.from(extraData.blockNumber).toNumber(),
+      timestamp: BigNumber.from(extraData.timestamp).toNumber(),
+      submitter: extraData.submitter,
+      l1TransactionHash: extraData.l1TransactionHash,
     }
 
     return {
@@ -184,7 +182,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       transactionEntries,
     }
   },
-  storeEventsHandler: async (entry, db) => {
+  storeEvent: async (entry, db) => {
     await db.putTransactionBatchEntries([entry.transactionBatchEntry])
     await db.putTransactionEntries(entry.transactionEntries)
 
