@@ -1,5 +1,9 @@
-import { EnqueueEntry, EventTransactionEnqueued } from '../../../types'
-import { EventHandlerSet } from './types'
+/* Imports: Internal */
+import {
+  EnqueueEntry,
+  EventTransactionEnqueued,
+  EventHandlerSet,
+} from '../../../types'
 
 export const handleEventsTransactionEnqueued: EventHandlerSet<
   EventTransactionEnqueued,
@@ -9,21 +13,21 @@ export const handleEventsTransactionEnqueued: EventHandlerSet<
   fixEventsHandler: async (events) => {
     return events.map((event) => {
       return {
-        ...event,
+        event,
         extraData: null,
       }
     })
   },
-  parseEventsHandler: async (events) => {
-    return events.map((event) => {
+  parseEventsHandler: async (fixedEvents) => {
+    return fixedEvents.map((fixedEvent) => {
       return {
-        index: event.args._queueIndex.toNumber(),
-        target: event.args._target,
-        data: event.args._data,
-        gasLimit: event.args._gasLimit.toNumber(),
-        origin: event.args._l1TxOrigin,
-        blockNumber: event.blockNumber,
-        timestamp: event.args._timestamp.toNumber(),
+        index: fixedEvent.event.args._queueIndex.toNumber(),
+        target: fixedEvent.event.args._target,
+        data: fixedEvent.event.args._data,
+        gasLimit: fixedEvent.event.args._gasLimit.toNumber(),
+        origin: fixedEvent.event.args._l1TxOrigin,
+        blockNumber: fixedEvent.event.blockNumber,
+        timestamp: fixedEvent.event.args._timestamp.toNumber(),
         ctcIndex: null,
       }
     })

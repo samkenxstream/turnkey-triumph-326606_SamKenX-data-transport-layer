@@ -11,8 +11,7 @@ import {
   loadOptimismContracts,
   ZERO_ADDRESS,
 } from '../../utils'
-import { EventAddressSet, TypedEthersEvent } from '../../types'
-import { EventHandlerSet } from './handlers/types'
+import { EventAddressSet, TypedEthersEvent, EventHandlerSet } from '../../types'
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
 import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
 import { handleEventsStateBatchAppended } from './handlers/state-batch-appended'
@@ -75,7 +74,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // sync with events coming from Ethereum. Loops as quickly as it can until it approaches the
     // tip of the chain, after which it starts waiting for a few seconds between each loop to avoid
     // unnecessary spam.
-
     while (this.running) {
       try {
         const highestSyncedL1Block =
@@ -102,7 +100,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
         // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
         // really, really slow for all event types.
-
         await this._syncEvents(
           'OVM_CanonicalTransactionChain',
           'TransactionEnqueued',
@@ -225,7 +222,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
         await handlers.storeEventsHandler(
           await handlers.parseEventsHandler(
-            await handlers.fixEventsHandler(events)
+            await handlers.fixEventsHandler(events, this.state.l1RpcProvider)
           ),
           this.state.db
         )
