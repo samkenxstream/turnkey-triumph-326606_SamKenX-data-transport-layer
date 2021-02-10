@@ -225,7 +225,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const tick = Date.now()
 
         for (const event of events) {
-          const extraData = await handlers.getExtraData(event, this.state.l1RpcProvider)
+          const extraData = await handlers.getExtraData(
+            event,
+            this.state.l1RpcProvider
+          )
           const parsedEvent = await handlers.parseEvent(event, extraData)
           await handlers.storeEvent(parsedEvent, this.state.db)
         }
