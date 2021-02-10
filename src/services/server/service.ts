@@ -15,7 +15,6 @@ import {
   TransactionBatchResponse,
   TransactionResponse,
 } from '../../types'
-import { ctcCoder } from '@eth-optimism/core-utils'
 
 export interface L1TransportServerOptions {
   db: any

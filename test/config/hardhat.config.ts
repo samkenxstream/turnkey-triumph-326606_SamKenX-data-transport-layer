@@ -4,6 +4,8 @@ const config: HardhatUserConfig = {
   // All paths relative to ** this file **.
   paths: {
     tests: '../../test',
+    cache: '../temp/cache',
+    artifacts: '../temp/artifacts',
   },
 }
 
