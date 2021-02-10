@@ -56,8 +56,8 @@ export class TransportDB {
   }
 
   public async putTransactionIndexByQueueIndex(
-    index: number,
-    queueIndex: number
+    queueIndex: number,
+    index: number
   ): Promise<void> {
     await this.db.put([
       {

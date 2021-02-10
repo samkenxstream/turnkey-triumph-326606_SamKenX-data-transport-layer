@@ -191,8 +191,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     for (const transactionEntry of entry.transactionEntries) {
       if (transactionEntry.queueOrigin === 'l1') {
         await db.putTransactionIndexByQueueIndex(
-          transactionEntry.index,
-          transactionEntry.queueIndex
+          transactionEntry.queueIndex,
+          transactionEntry.index
         )
       }
     }
