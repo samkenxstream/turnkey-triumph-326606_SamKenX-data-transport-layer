@@ -12,6 +12,31 @@ The Optimistic Ethereum Data Transport Layer is a long-running software service 
 
 We run two sub-services, the [`L1IngestionService`](./src/services/l1-ingestion/service.ts) and the [`L1TransportServer`](./src/services/server/service.ts). The `L1IngestionService` is responsible for querying for the various events and transaction data necessary to accurately index information from our Layer 1 (Ethereum) smart contracts. The `L1TransportServer` simply provides an API for accessing this information.
 
+## Getting started
+
+### Configuration
+
+See an example config at [.env.example](.env.example); copy into a `.env` file before running.
+
+`L1_TRANSPORT__L1_RPC_ENDPOINT` can be the JSON RPC endpoint of any L1 Ethereum node. `L1_TRANSPORT__ADDRESS_MANAGER` should be the contract addresss of the Address Manager on the corresponding network; find their values in the [Regenesis repo](https://github.com/ethereum-optimism/regenesis).
+
+### Building and usage
+
+After cloning and switching to the repository, install dependencies:
+
+```bash
+yarn
+```
+
+Use the following commands to build, use, test, and lint:
+
+```bash
+yarn build
+yarn start
+yarn test
+yarn lint
+```
+
 ## HTTP API
 
 This section describes the HTTP API for accessing indexed Layer 1 data.
