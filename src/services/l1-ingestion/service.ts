@@ -225,13 +225,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const tick = Date.now()
 
         for (const event of events) {
-          await handlers.storeEvent(
-            await handlers.parseEvent(
-              event,
-              await handlers.getExtraData(event, this.state.l1RpcProvider)
-            ),
-            this.state.db
-          )
+          const extraData = await handlers.getExtraData(event, this.state.l1RpcProvider)
+          const parsedEvent = await handlers.parseEvent(event, extraData)
+          await handlers.storeEvent(parsedEvent, this.state.db)
         }
 
         const tock = Date.now()
