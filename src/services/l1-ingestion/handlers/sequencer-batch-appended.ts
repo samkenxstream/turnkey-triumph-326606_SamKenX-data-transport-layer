@@ -1,11 +1,12 @@
 /* Imports: External */
-import { BigNumber, ethers } from 'ethers'
+import { BigNumber, ethers, utils } from 'ethers'
 import { getContractFactory } from '@eth-optimism/contracts'
 import {
   ctcCoder,
   fromHexString,
   toHexString,
   TxType,
+  remove0x,
 } from '@eth-optimism/core-utils'
 
 /* Imports: Internal */
@@ -25,7 +26,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     submitter: string
     l1TransactionData: string
     l1TransactionHash: string
-    gasLimit: number
+    gasLimit: number,
+    chainId: number,
 
     // Stuff from TransactionBatchAppended.
     prevTotalElements: BigNumber
@@ -42,6 +44,9 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
   getExtraData: async (event, l1RpcProvider) => {
     const l1Transaction = await event.getTransaction()
     const eventBlock = await event.getBlock()
+
+    // The chainId is used for non contextual transaction validation
+    const chainId = await l1RpcProvider.send("eth_chainId", [])
 
     // TODO: We need to update our events so that we actually have enough information to parse this
     // batch without having to pull out this extra event. For the meantime, we need to find this
@@ -80,6 +85,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       l1TransactionHash: l1Transaction.hash,
       l1TransactionData: l1Transaction.data,
       gasLimit: 8_000_000, // Fixed to this currently.
+      chainId,
 
       prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
       batchIndex: batchSubmissionEvent.args._batchIndex,
@@ -109,7 +115,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         )
 
         const { decoded, type } = maybeDecodeSequencerBatchTransaction(
-          sequencerTransaction
+          sequencerTransaction,
+          {chainId: BigNumber.from(extraData.chainId).toNumber()}
         )
 
         transactionEntries.push({
@@ -238,10 +245,11 @@ const parseSequencerBatchTransaction = (
 }
 
 const maybeDecodeSequencerBatchTransaction = (
-  transaction: Buffer
+  transaction: Buffer,
+  context: Object,
 ): {
   decoded: DecodedSequencerBatchTransaction | null
-  type: 'EIP155' | 'ETH_SIGN' | null
+  type: 'EIP155' | 'ETH_SIGN' | null,
 } => {
   let decoded = null
   let type = null
@@ -257,12 +265,59 @@ const maybeDecodeSequencerBatchTransaction = (
     } else {
       throw new Error(`Unknown sequencer transaction type.`)
     }
+    // Validate the transaction
+    if (!validateBatchTransaction(type, decoded, context)) {
+      decoded = null
+    }
   } catch (err) {
-    // TODO: What should we do if this fails?
+    // Do nothing
   }
 
   return {
     decoded,
     type,
   }
+}
+
+function validateBatchTransaction(
+  type: string | null,
+  decoded: DecodedSequencerBatchTransaction | null,
+  context
+): boolean {
+  // Unknown types are considered invalid
+  if (type === null) {
+    return false
+  }
+  try {
+    // A valid EIP155 transaction type must have a signature that validates
+    if (type === 'EIP155') {
+      const raw = utils.serializeTransaction({
+        gasPrice: decoded.gasPrice,
+        gasLimit: decoded.gasLimit,
+        nonce: decoded.nonce,
+        value: 0,
+        data: decoded.data,
+        chainId: context.chainId,
+        to: decoded.target,
+      })
+      const hash = utils.keccak256(raw)
+      const bytes = utils.arrayify(hash)
+      const sig = utils.joinSignature({
+        v: parseInt(remove0x(decoded.sig.v), 10),
+        r: decoded.sig.r,
+        s: decoded.sig.s
+      })
+      // This throws on an invalid signature
+      utils.recoverPublicKey(bytes, sig)
+      return true
+    }
+    if (type === 'ETH_SIGN') {
+      // TODO: ethsign ecrecover
+      return true
+    }
+  } catch (e) {
+    // fallthrough
+  }
+  // Allow soft forks
+  return false
 }
