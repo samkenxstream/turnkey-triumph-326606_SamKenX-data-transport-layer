@@ -109,6 +109,21 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     this._registerRoute(
       'get',
+      '/eth/syncing',
+      async (): Promise<boolean> => {
+        const highestL2BlockNumber = await this.state.db.getHighestL2BlockNumber()
+        const currentL2Block = await this.state.db.getLatestTransaction()
+
+        if (currentL2Block === null) {
+          return true
+        } else {
+          return highestL2BlockNumber > currentL2Block.index
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
       '/eth/context/latest',
       async (): Promise<ContextResponse> => {
         const tip = await this.state.l1RpcProvider.getBlockNumber()

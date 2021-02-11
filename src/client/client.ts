@@ -17,6 +17,10 @@ import {
 export class L1DataTransportClient {
   constructor(private url: string) {}
 
+  public async syncing(): Promise<boolean> {
+    return this._get(`/eth/syncing`)
+  }
+
   public async getEnqueueByIndex(index: number): Promise<EnqueueResponse> {
     return this._get(`/enqueue/index/${index}`)
   }
