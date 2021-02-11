@@ -2,7 +2,7 @@ export interface DecodedSequencerBatchTransaction {
   sig: {
     r: string
     s: string
-    v: string
+    v: number
   }
   gasLimit: number
   gasPrice: number
@@ -19,7 +19,6 @@ export interface EnqueueEntry {
   origin: string
   blockNumber: number
   timestamp: number
-  ctcIndex: number | null
 }
 
 export interface TransactionEntry {

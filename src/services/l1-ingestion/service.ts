@@ -12,19 +12,13 @@ import {
   ZERO_ADDRESS,
 } from '../../utils'
 import {
-  EventAddressSet,
-  EventSequencerBatchAppended,
-  EventStateBatchAppended,
-  EventTransactionBatchAppended,
-  EventTransactionEnqueued,
+  EventArgsAddressSet,
   TypedEthersEvent,
+  EventHandlerSet,
 } from '../../types'
-import {
-  parseEventSequencerBatchAppended,
-  parseEventStateBatchAppended,
-  parseEventTransactionEnqueued,
-} from './codec'
-import { BigNumber } from 'ethers'
+import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
+import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
+import { handleEventsStateBatchAppended } from './handlers/state-batch-appended'
 
 export interface L1IngestionServiceOptions {
   db: any
@@ -38,6 +32,8 @@ export interface L1IngestionServiceOptions {
 
 export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   protected name = 'L1 Ingestion Service'
+
+  // TODO: Double check these defaults.
   protected defaultOptions = {
     confirmations: 12,
     pollingInterval: 5000,
@@ -53,10 +49,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
-    if (!this.options.db.isOpen()) {
-      await this.options.db.open()
-    }
-
     this.state.db = new TransportDB(this.options.db)
 
     this.state.l1RpcProvider =
@@ -64,13 +56,16 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         ? new JsonRpcProvider(this.options.l1RpcProvider)
         : this.options.l1RpcProvider
 
+    // Would be nice if this weren't necessary, maybe one day.
     this.state.contracts = await loadOptimismContracts(
       this.state.l1RpcProvider,
       this.options.addressManager
     )
 
     // Assume we won't have too many of these events. Doubtful we'll ever have the 2000+ that would
-    // break this statement when interacting with alchemy or infura.
+    // break this statement when interacting with alchemy or infura. But probably worth figuring
+    // out a better way to get this information, perhaps our contracts should always emit an event
+    // upon creation.
     this.state.startingL1BlockNumber = (
       await this.state.contracts.Lib_AddressManager.queryFilter(
         this.state.contracts.Lib_AddressManager.filters.AddressSet()
@@ -83,7 +78,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // sync with events coming from Ethereum. Loops as quickly as it can until it approaches the
     // tip of the chain, after which it starts waiting for a few seconds between each loop to avoid
     // unnecessary spam.
-
     while (this.running) {
       try {
         const highestSyncedL1Block =
@@ -95,6 +89,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           currentL1Block - this.options.confirmations
         )
 
+        // We're already at the head, so no point in attempting to sync.
         if (highestSyncedL1Block === targetL1Block) {
           await sleep(this.options.pollingInterval)
           continue
@@ -109,29 +104,28 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
         // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
         // really, really slow for all event types.
-
         await this._syncEvents(
           'OVM_CanonicalTransactionChain',
           'TransactionEnqueued',
-          this._handleEventsTransactionEnqueued.bind(this),
           highestSyncedL1Block,
-          targetL1Block
+          targetL1Block,
+          handleEventsTransactionEnqueued
         )
 
         await this._syncEvents(
           'OVM_CanonicalTransactionChain',
           'SequencerBatchAppended',
-          this._handleEventsSequencerBatchAppended.bind(this),
           highestSyncedL1Block,
-          targetL1Block
+          targetL1Block,
+          handleEventsSequencerBatchAppended
         )
 
         await this._syncEvents(
           'OVM_StateCommitmentChain',
           'StateBatchAppended',
-          this._handleEventsStateBatchAppended.bind(this),
           highestSyncedL1Block,
-          targetL1Block
+          targetL1Block,
+          handleEventsStateBatchAppended
         )
 
         await this.state.db.setHighestSyncedL1Block(targetL1Block)
@@ -157,9 +151,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   private async _syncEvents(
     contractName: string,
     eventName: string,
-    handler: (event: TypedEthersEvent<any>[]) => Promise<void>,
     fromL1Block: number,
-    toL1Block: number
+    toL1Block: number,
+    handlers: EventHandlerSet<any, any, any>
   ): Promise<void> {
     // Basic sanity checks.
     if (!this.state.contracts[contractName]) {
@@ -180,7 +174,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.state.contracts.Lib_AddressManager.filters.AddressSet(),
       fromL1Block,
       toL1Block
-    )) as EventAddressSet[]).filter((event) => {
+    )) as TypedEthersEvent<EventArgsAddressSet>[]).filter((event) => {
       return event.args._name === contractName
     })
 
@@ -229,7 +223,16 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // Handle events, if any.
       if (events.length > 0) {
         const tick = Date.now()
-        await handler(events)
+
+        for (const event of events) {
+          const extraData = await handlers.getExtraData(
+            event,
+            this.state.l1RpcProvider
+          )
+          const parsedEvent = await handlers.parseEvent(event, extraData)
+          await handlers.storeEvent(parsedEvent, this.state.db)
+        }
+
         const tock = Date.now()
 
         this.logger.success(
@@ -251,6 +254,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     contractName: string,
     blockNumber: number
   ): Promise<string> {
+    // TODO: Should be much easier than this. Need to change the params of this event.
     const relevantAddressSetEvents = (
       await this.state.contracts.Lib_AddressManager.queryFilter(
         this.state.contracts.Lib_AddressManager.filters.AddressSet()
@@ -267,118 +271,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     } else {
       // Address wasn't set before this.
       return ZERO_ADDRESS
-    }
-  }
-
-  /**
-   * Handles TransactionEnqueued events, converts them into prettier data structures and throws
-   * them in the database.
-   * @param events TransactionEnqueued events to handle.
-   */
-  private async _handleEventsTransactionEnqueued(
-    events: EventTransactionEnqueued[]
-  ): Promise<void> {
-    const enqueueEntries = events.map((event) => {
-      return parseEventTransactionEnqueued(event)
-    })
-
-    await this.state.db.putEnqueueEntries(enqueueEntries)
-  }
-
-  /**
-   * Handles SequencerBatchAppended events. A lot more parsing than the other functions as a result
-   * of calldata compression and some issues with the information included in our events (TODO).
-   * @param events StateBatchAppended events to handle.
-   */
-  private async _handleEventsSequencerBatchAppended(
-    events: EventSequencerBatchAppended[]
-  ): Promise<void> {
-    // TODO: Not reliable. Should be part of an event instead, must be stored.
-    // We're going to use this value for every Sequencer transaction, so it's easier just to get
-    // the value once to avoid the extra network request for every transaction.
-    const gasLimit: BigNumber = await this.state.contracts.OVM_ExecutionManager.getMaxTransactionGasLimit()
-
-    for (const event of events) {
-      // Unfortunately there isn't an easy way of getting a timestamp for this event without
-      // querying for the full block. So we just query for the full block and use it in various
-      // places to be consistent.
-      const eventBlock = await this.state.l1RpcProvider.getBlock(
-        event.blockNumber
-      )
-
-      // TODO: We need to update our events so that we actually have enough information to parse this
-      // batch without having to pull out this extra event. For the meantime, we need to find this
-      // "TransactonBatchAppended" event to get the rest of the data.
-      const batchSubmissionEvent = (
-        await this.state.contracts.OVM_CanonicalTransactionChain.attach(
-          event.address
-        ).queryFilter(
-          this.state.contracts.OVM_CanonicalTransactionChain.filters.TransactionBatchAppended(),
-          eventBlock.number,
-          eventBlock.number
-        )
-      ).find((foundEvent) => {
-        // We might have more than one event in this block, so we specifically want to find a
-        // "TransactonBatchAppended" event emitted immediately before the event in question.
-        return (
-          foundEvent.transactionHash === event.transactionHash &&
-          foundEvent.logIndex === event.logIndex - 1
-        )
-      }) as EventTransactionBatchAppended
-
-      if (!batchSubmissionEvent) {
-        throw new Error(
-          `Well, this really shouldn't happen. A SequencerBatchAppended event doesn't have a corresponding TransactionBatchAppended event.`
-        )
-      }
-
-      const {
-        transactionBatchEntry,
-        transactionEntries,
-      } = await parseEventSequencerBatchAppended(
-        gasLimit.toNumber(),
-        eventBlock,
-        batchSubmissionEvent,
-        event
-      )
-
-      // TODO: We could maybe move this outside of this loop and save on db ops.
-      await this.state.db.putTransactionBatchEntries([transactionBatchEntry])
-      await this.state.db.putTransactionEntries(transactionEntries)
-
-      // Add an additional field to the enqueued transactions in the database
-      // if they have already been confirmed
-      for (const transactionEntry of transactionEntries) {
-        if (transactionEntry.queueOrigin === 'l1') {
-          await this.state.db.putTransactionIndexByQueueIndex(
-            transactionEntry.index,
-            transactionEntry.queueIndex
-          )
-        }
-      }
-    }
-  }
-
-  /**
-   * Handles StateBatchAppended events. Also just relatively simple parsing.
-   * @param events StateBatchAppended events to handle.
-   */
-  private async _handleEventsStateBatchAppended(
-    events: EventStateBatchAppended[]
-  ): Promise<void> {
-    for (const event of events) {
-      const eventBlock = await this.state.l1RpcProvider.getBlock(
-        event.blockNumber
-      )
-
-      const {
-        stateRootBatchEntry,
-        stateRootEntries,
-      } = await parseEventStateBatchAppended(eventBlock, event)
-
-      // TODO: We could maybe move this outside of this loop and save on db ops.
-      await this.state.db.putStateRootBatchEntries([stateRootBatchEntry])
-      await this.state.db.putStateRootEntries(stateRootEntries)
     }
   }
 }

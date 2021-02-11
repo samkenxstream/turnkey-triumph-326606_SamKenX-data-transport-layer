@@ -13,6 +13,7 @@
     "interface-name": false,
     "max-classes-per-file": false,
     "member-ordering": false,
+    "no-console": false,
     "no-bitwise": false,
     "no-empty-interface": false,
     "no-implicit-dependencies": [true, "dev"],

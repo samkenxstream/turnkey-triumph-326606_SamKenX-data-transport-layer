@@ -1,6 +1,8 @@
+/* Imports: External */
 import level from 'level'
 import { BaseService } from '@eth-optimism/service-base'
 
+/* Imports: Internal */
 import {
   L1IngestionService,
   L1IngestionServiceOptions,
