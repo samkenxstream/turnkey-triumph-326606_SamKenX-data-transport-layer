@@ -257,12 +257,34 @@ const maybeDecodeSequencerBatchTransaction = (
     } else {
       throw new Error(`Unknown sequencer transaction type.`)
     }
+    // Validate the transaction
+    if (!validateBatchTransaction(type, decoded)) {
+      decoded = null
+    }
   } catch (err) {
-    // TODO: What should we do if this fails?
+    // Do nothing
   }
 
   return {
     decoded,
     type,
   }
+}
+
+export function validateBatchTransaction(
+  type: string | null,
+  decoded: DecodedSequencerBatchTransaction | null,
+): boolean {
+  // Unknown types are considered invalid
+  if (type === null) {
+    return false
+  }
+  if (type === 'EIP155' || type === 'ETH_SIGN') {
+    if (decoded.sig.v !== 1 && decoded.sig.v !== 0) {
+      return false
+    }
+    return true
+  }
+  // Allow soft forks
+  return false
 }
