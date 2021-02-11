@@ -1,12 +1,11 @@
 /* Imports: External */
-import { BigNumber, ethers, utils } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { getContractFactory } from '@eth-optimism/contracts'
 import {
   ctcCoder,
   fromHexString,
   toHexString,
   TxType,
-  remove0x,
 } from '@eth-optimism/core-utils'
 
 /* Imports: Internal */
@@ -26,7 +25,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     submitter: string
     l1TransactionData: string
     l1TransactionHash: string
-    gasLimit: number,
+    gasLimit: number
 
     // Stuff from TransactionBatchAppended.
     prevTotalElements: BigNumber
@@ -239,10 +238,10 @@ const parseSequencerBatchTransaction = (
 }
 
 const maybeDecodeSequencerBatchTransaction = (
-  transaction: Buffer,
+  transaction: Buffer
 ): {
   decoded: DecodedSequencerBatchTransaction | null
-  type: 'EIP155' | 'ETH_SIGN' | null,
+  type: 'EIP155' | 'ETH_SIGN' | null
 } => {
   let decoded = null
   let type = null
