@@ -1,10 +1,17 @@
 {
   "name": "@eth-optimism/data-transport-layer",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "build/index.js",
   "license": "MIT",
+  "files": [
+    "build/**/*.js",
+    "build/**/*.js.map",
+    "build/**/*.ts"
+  ],
+  "types": "build/index.d.ts",
   "scripts": {
-    "clean": "rimraf ./db ./build",
+    "clean": "rimraf ./build",
+    "clean:db": "rimraf ./db",
     "lint": "yarn run lint:fix && yarn run lint:typescript",
     "lint:typescript": "tslint --format stylish --project .",
     "lint:fix": "yarn run lint:fix:typescript",
