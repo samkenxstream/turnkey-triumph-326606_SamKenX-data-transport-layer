@@ -10,6 +10,7 @@ import {
   EnqueueResponse,
   StateRootBatchResponse,
   StateRootResponse,
+  SyncingResponse,
   TransactionBatchResponse,
   TransactionResponse,
 } from '../types'
@@ -17,7 +18,7 @@ import {
 export class L1DataTransportClient {
   constructor(private url: string) {}
 
-  public async syncing(): Promise<boolean> {
+  public async syncing(): Promise<SyncingResponse> {
     return this._get(`/eth/syncing`)
   }
 

@@ -12,6 +12,7 @@ import {
   EnqueueResponse,
   StateRootBatchResponse,
   StateRootResponse,
+  SyncingResponse,
   TransactionBatchResponse,
   TransactionResponse,
 } from '../../types'
@@ -110,14 +111,29 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
     this._registerRoute(
       'get',
       '/eth/syncing',
-      async (): Promise<boolean> => {
+      async (): Promise<SyncingResponse> => {
         const highestL2BlockNumber = await this.state.db.getHighestL2BlockNumber()
         const currentL2Block = await this.state.db.getLatestTransaction()
 
         if (currentL2Block === null) {
-          return true
+          return {
+            syncing: true,
+            highestKnownBlock: highestL2BlockNumber,
+            currentBlock: 0,
+          }
+        }
+
+        if (highestL2BlockNumber > currentL2Block.index) {
+          return {
+            syncing: true,
+            highestKnownBlock: highestL2BlockNumber,
+            currentBlock: currentL2Block.index,
+          }
         } else {
-          return highestL2BlockNumber > currentL2Block.index
+          return {
+            syncing: false,
+            currentBlock: currentL2Block.index,
+          }
         }
       }
     )
