@@ -61,7 +61,7 @@ describe('Event Handlers: OVM_CanonicalTransactionChain.SequencerBatchAppended',
         expect(output1).to.equal(expected1)
       })
 
-      it('should mark a transaction as valid if the `v` parameter is greater than 1', () => {
+      it('should mark a transaction as invalid if the `v` parameter is greater than 1', () => {
         // CTC index 23159
         const input1: [any, any] = [
           'EIP155',
