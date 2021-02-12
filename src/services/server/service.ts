@@ -20,6 +20,7 @@ import {
 export interface L1TransportServerOptions {
   db: any
   port: number
+  hostname: string
   confirmations: number
   l1RpcProvider: string | JsonRpcProvider
 }
@@ -29,6 +30,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   protected defaultOptions = {
     // TODO: Check if this port is used by any common software.
     port: 7878,
+    hostname: 'localhost',
   }
 
   private state: {
@@ -54,7 +56,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   }
 
   protected async _start(): Promise<void> {
-    this.state.server = this.state.app.listen(this.options.port)
+    this.state.server = this.state.app.listen(
+      this.options.port,
+      this.options.hostname
+    )
     this.logger.info(`Server listening on port: ${this.options.port}`)
   }
 
