@@ -155,13 +155,13 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           if (highestL2BlockNumber === null) {
             return {
               syncing: false,
-              currentBlock: 0,
+              currentTransactionIndex: 0,
             }
           } else {
             return {
               syncing: true,
-              highestKnownBlock: highestL2BlockNumber,
-              currentBlock: 0,
+              highestKnownTransactionIndex: highestL2BlockNumber,
+              currentTransactionIndex: 0,
             }
           }
         }
@@ -169,13 +169,13 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         if (highestL2BlockNumber > currentL2Block.index) {
           return {
             syncing: true,
-            highestKnownBlock: highestL2BlockNumber,
-            currentBlock: currentL2Block.index,
+            highestKnownTransactionIndex: highestL2BlockNumber,
+            currentTransactionIndex: currentL2Block.index,
           }
         } else {
           return {
             syncing: false,
-            currentBlock: currentL2Block.index,
+            currentTransactionIndex: currentL2Block.index,
           }
         }
       }
