@@ -273,7 +273,7 @@ const maybeDecodeSequencerBatchTransaction = (
 
 export function validateBatchTransaction(
   type: string | null,
-  decoded: DecodedSequencerBatchTransaction | null,
+  decoded: DecodedSequencerBatchTransaction | null
 ): boolean {
   // Unknown types are considered invalid
   if (type === null) {

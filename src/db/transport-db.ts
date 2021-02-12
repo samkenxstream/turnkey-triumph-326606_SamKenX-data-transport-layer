@@ -1,4 +1,5 @@
 /* Imports: Internal */
+import { BigNumber } from 'ethers'
 import {
   EnqueueEntry,
   StateRootBatchEntry,
@@ -15,6 +16,7 @@ const TRANSPORT_DB_KEYS = {
   TRANSACTION_BATCH: `batch:transaction`,
   STATE_ROOT: `stateroot`,
   STATE_ROOT_BATCH: `batch:stateroot`,
+  HIGHEST_L2_BLOCK: `l2:highest`,
   HIGHEST_SYNCED_BLOCK: `synced:highest`,
 }
 
@@ -128,6 +130,26 @@ export class TransportDB {
 
   public async getLatestStateRootBatch(): Promise<StateRootBatchEntry> {
     return this._getLatestEntry(TRANSPORT_DB_KEYS.STATE_ROOT_BATCH)
+  }
+
+  public async getHighestL2BlockNumber(): Promise<number> {
+    return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK, 0) || 0
+  }
+
+  public async putHighestL2BlockNumber(
+    block: number | BigNumber
+  ): Promise<void> {
+    if (block <= (await this.getHighestL2BlockNumber())) {
+      return
+    }
+
+    return this.db.put<number>([
+      {
+        key: TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK,
+        index: 0,
+        value: BigNumber.from(block).toNumber(),
+      },
+    ])
   }
 
   public async getHighestSyncedL1Block(): Promise<number> {
