@@ -152,10 +152,17 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const currentL2Block = await this.state.db.getLatestTransaction()
 
         if (currentL2Block === null) {
-          return {
-            syncing: true,
-            highestKnownBlock: highestL2BlockNumber,
-            currentBlock: 0,
+          if (highestL2BlockNumber === null) {
+            return {
+              syncing: false,
+              currentBlock: 0,
+            }
+          } else {
+            return {
+              syncing: true,
+              highestKnownBlock: highestL2BlockNumber,
+              currentBlock: 0,
+            }
           }
         }
 

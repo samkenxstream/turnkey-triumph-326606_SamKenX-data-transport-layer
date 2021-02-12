@@ -133,7 +133,7 @@ export class TransportDB {
   }
 
   public async getHighestL2BlockNumber(): Promise<number> {
-    return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK, 0) || 0
+    return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK, 0)
   }
 
   public async putHighestL2BlockNumber(
@@ -153,7 +153,10 @@ export class TransportDB {
   }
 
   public async getHighestSyncedL1Block(): Promise<number> {
-    return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_SYNCED_BLOCK, 0) || 0
+    return (
+      (await this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_SYNCED_BLOCK, 0)) ||
+      0
+    )
   }
 
   public async setHighestSyncedL1Block(block: number): Promise<void> {
