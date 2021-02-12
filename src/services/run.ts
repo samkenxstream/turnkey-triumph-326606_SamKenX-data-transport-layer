@@ -12,6 +12,7 @@ import { L1DataTransportService } from './main/service'
     const service = new L1DataTransportService({
       db: process.env.DATA_TRANSPORT_LAYER__DB_PATH,
       port: parseInt(process.env.DATA_TRANSPORT_LAYER__SERVER_PORT, 10),
+      hostname: process.env.DATA_TRANSPORT_LAYER__SERVER_HOSTNAME,
       confirmations: parseInt(
         process.env.DATA_TRANSPORT_LAYER__CONFIRMATIONS,
         10
