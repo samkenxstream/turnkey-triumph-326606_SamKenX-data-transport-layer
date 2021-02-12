@@ -39,10 +39,10 @@ export interface ContextResponse {
 export type SyncingResponse =
   | {
       syncing: true
-      highestKnownBlock: number
-      currentBlock: number
+      highestKnownTransactionIndex: number
+      currentTransactionIndex: number
     }
   | {
       syncing: false
-      currentBlock: number
+      currentTransactionIndex: number
     }
