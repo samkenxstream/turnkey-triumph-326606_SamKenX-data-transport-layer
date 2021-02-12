@@ -93,6 +93,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     // Would be nice if this weren't necessary, maybe one day.
+    // TODO: Probably just assert inside here that all of the contracts have code in them.
     this.state.contracts = await loadOptimismContracts(
       this.state.l1RpcProvider,
       this.options.addressManager
@@ -108,9 +109,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       )
     )[0].blockNumber
 
-    await this.state.db.putHighestL2BlockNumber(
-      await this.state.contracts.OVM_CanonicalTransactionChain.getTotalElements()
-    )
+    // Store the total number of submitted transactions so the server can tell clients if we're
+    // done syncing or not
+    const totalElements = await this.state.contracts.OVM_CanonicalTransactionChain.getTotalElements()
+    if (totalElements > 0) {
+      await this.state.db.putHighestL2BlockNumber(totalElements - 1)
+    }
   }
 
   protected async _start(): Promise<void> {
