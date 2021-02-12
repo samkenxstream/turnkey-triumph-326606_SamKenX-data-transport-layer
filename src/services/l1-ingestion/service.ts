@@ -71,6 +71,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         this.state.contracts.Lib_AddressManager.filters.AddressSet()
       )
     )[0].blockNumber
+
+    await this.state.db.putHighestL2BlockNumber(
+      await this.state.contracts.OVM_CanonicalTransactionChain.getTotalElements()
+    )
   }
 
   protected async _start(): Promise<void> {

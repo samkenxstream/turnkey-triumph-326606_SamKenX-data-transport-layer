@@ -10,12 +10,17 @@ import {
   EnqueueResponse,
   StateRootBatchResponse,
   StateRootResponse,
+  SyncingResponse,
   TransactionBatchResponse,
   TransactionResponse,
 } from '../types'
 
 export class L1DataTransportClient {
   constructor(private url: string) {}
+
+  public async syncing(): Promise<SyncingResponse> {
+    return this._get(`/eth/syncing`)
+  }
 
   public async getEnqueueByIndex(index: number): Promise<EnqueueResponse> {
     return this._get(`/enqueue/index/${index}`)

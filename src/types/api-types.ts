@@ -35,3 +35,14 @@ export interface ContextResponse {
   timestamp: number
   blockHash: string
 }
+
+export type SyncingResponse =
+  | {
+      syncing: true
+      highestKnownBlock: number
+      currentBlock: number
+    }
+  | {
+      syncing: false
+      currentBlock: number
+    }
