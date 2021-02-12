@@ -58,6 +58,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         ? new JsonRpcProvider(this.options.l1RpcProvider)
         : this.options.l1RpcProvider
 
+    this.logger.info(`Using provider url: ${this.options.l1RpcProvider}`)
     this.logger.info(`Using AddressManager at: ${this.options.addressManager}`)
 
     const Lib_AddressManager = loadContract(
