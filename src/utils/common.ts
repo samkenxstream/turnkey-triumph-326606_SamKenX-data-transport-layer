@@ -7,3 +7,13 @@ export const sleep = async (ms: number): Promise<void> => {
     setTimeout(resolve, ms)
   })
 }
+
+export const assert = (condition: () => boolean, reason?: string) => {
+  try {
+    if (condition() === false) {
+      throw new Error(`Assertion failed: ${reason}`)
+    }
+  } catch (err) {
+    throw new Error(`Assertion failed: ${reason}\n${err}`)
+  }
+}

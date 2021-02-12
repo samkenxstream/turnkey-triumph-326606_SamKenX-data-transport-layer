@@ -1,4 +1,5 @@
 /* Imports: External */
+import * as fs from 'fs'
 import { BaseService } from '@eth-optimism/service-base'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import colors from 'colors/safe'
@@ -8,6 +9,7 @@ import { TransportDB } from '../../db/transport-db'
 import {
   OptimismContracts,
   sleep,
+  assert,
   loadOptimismContracts,
   ZERO_ADDRESS,
   loadContract,
@@ -51,6 +53,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
+    await this._validateOptions()
+
     this.state.db = new TransportDB(this.options.db)
 
     this.state.l1RpcProvider =
@@ -308,5 +312,45 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // Address wasn't set before this.
       return ZERO_ADDRESS
     }
+  }
+
+  private async _validateOptions(): Promise<void> {
+    // TODO: Maybe standardize this to reduce duplicated code?
+
+    assert(() => {
+      return this.options.db && this.options.db.db
+    }, `db option is not a valid LevelUP database: ${this.options.db}`)
+
+    assert(() => {
+      return (
+        typeof this.options.addressManager === 'string' &&
+        this.options.addressManager.startsWith('0x') &&
+        this.options.addressManager.length === 42 &&
+        fromHexString(this.options.addressManager).length === 20
+      )
+    }, `addressManager option is not a valid address: ${this.options.addressManager}`)
+
+    assert(() => {
+      return Number.isInteger(this.options.pollingInterval)
+    }, `pollingInterval option is not a valid integer: ${this.options.pollingInterval}`)
+
+    assert(() => {
+      return Number.isInteger(this.options.confirmations)
+    }, `confirmations option is not a valid integer: ${this.options.confirmations}`)
+
+    assert(() => {
+      return Number.isInteger(this.options.logsPerPollingInterval)
+    }, `logsPerPollingInterval option is not a valid integer: ${this.options.logsPerPollingInterval}`)
+
+    assert(() => {
+      return typeof this.options.dangerouslyCatchAllErrors === 'boolean'
+    }, `dangerouslyCatchAllErrors option is not a valid boolean: ${this.options.dangerouslyCatchAllErrors}`)
+
+    assert(() => {
+      return (
+        typeof this.options.l1RpcProvider === 'string' ||
+        this.options.l1RpcProvider.ready !== undefined
+      )
+    }, `l1RpcProvider option is not a valid JSON-RPC endpoint or JsonRpcProvider instance: ${this.options.l1RpcProvider}`)
   }
 }
