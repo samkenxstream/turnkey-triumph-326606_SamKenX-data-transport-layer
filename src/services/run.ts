@@ -12,16 +12,23 @@ import { L1DataTransportService } from './main/service'
     const service = new L1DataTransportService({
       db: process.env.DATA_TRANSPORT_LAYER__DB_PATH,
       port: parseInt(process.env.DATA_TRANSPORT_LAYER__SERVER_PORT, 10),
-      confirmations: parseInt(process.env.DATA_TRANSPORT_LAYER__CONFIRMATIONS, 10),
+      confirmations: parseInt(
+        process.env.DATA_TRANSPORT_LAYER__CONFIRMATIONS,
+        10
+      ),
       l1RpcProvider: process.env.DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT,
       addressManager: process.env.DATA_TRANSPORT_LAYER__ADDRESS_MANAGER,
-      pollingInterval: parseInt(process.env.DATA_TRANSPORT_LAYER__POLLING_INTERVAL, 10),
+      pollingInterval: parseInt(
+        process.env.DATA_TRANSPORT_LAYER__POLLING_INTERVAL,
+        10
+      ),
       logsPerPollingInterval: parseInt(
         process.env.DATA_TRANSPORT_LAYER__LOGS_PER_POLLING_INTERVAL,
         10
       ),
       dangerouslyCatchAllErrors:
-        process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS === 'true',
+        process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS ===
+        'true',
     })
 
     await service.start()

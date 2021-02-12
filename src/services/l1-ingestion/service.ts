@@ -10,6 +10,7 @@ import {
   sleep,
   loadOptimismContracts,
   ZERO_ADDRESS,
+  loadContract,
 } from '../../utils'
 import {
   EventArgsAddressSet,
@@ -19,6 +20,7 @@ import {
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
 import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
 import { handleEventsStateBatchAppended } from './handlers/state-batch-appended'
+import { fromHexString } from '@eth-optimism/core-utils'
 
 export interface L1IngestionServiceOptions {
   db: any
@@ -55,6 +57,36 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       typeof this.options.l1RpcProvider === 'string'
         ? new JsonRpcProvider(this.options.l1RpcProvider)
         : this.options.l1RpcProvider
+
+    this.logger.info(`Using AddressManager at: ${this.options.addressManager}`)
+
+    const Lib_AddressManager = loadContract(
+      'Lib_AddressManager',
+      this.options.addressManager,
+      this.state.l1RpcProvider
+    )
+
+    const code = await this.state.l1RpcProvider.getCode(
+      Lib_AddressManager.address
+    )
+    if (fromHexString(code).length === 0) {
+      throw new Error(
+        `Provided AddressManager doesn't have any code: ${Lib_AddressManager.address}`
+      )
+    }
+
+    try {
+      // Just check to make sure this doesn't throw. If this is a valid AddressManager, then this
+      // call should succeed. If it throws, then our AddressManager is broken. We don't care about
+      // the result.
+      await Lib_AddressManager.getAddress(
+        `Here's a contract name that definitely doesn't exist.`
+      )
+    } catch (err) {
+      throw new Error(
+        `Seems like your AddressManager is busted: ${Lib_AddressManager.address}`
+      )
+    }
 
     // Would be nice if this weren't necessary, maybe one day.
     this.state.contracts = await loadOptimismContracts(
