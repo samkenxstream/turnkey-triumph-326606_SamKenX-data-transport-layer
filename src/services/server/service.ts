@@ -200,6 +200,31 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     this._registerRoute(
       'get',
+      '/eth/context/blocknumber/:number',
+      async (req): Promise<ContextResponse> => {
+        const number = BigNumber.from(req.params.number).toNumber()
+        const tip = await this.state.l1RpcProvider.getBlockNumber()
+        const blockNumber = Math.max(0, tip - this.options.confirmations)
+
+        if (number > blockNumber) {
+           return {
+             blockNumber: null,
+             timestamp: null,
+             blockHash: null,
+           }
+        }
+
+        const block = await this.state.l1RpcProvider.getBlock(number)
+        return {
+          blockNumber: block.number,
+          timestamp: block.timestamp,
+          blockHash: block.hash,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
       '/enqueue/latest',
       async (): Promise<EnqueueResponse> => {
         const enqueue = await this.state.db.getLatestEnqueue()
