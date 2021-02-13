@@ -1,6 +1,5 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
-import * as fs from 'fs'
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { BigNumber } from 'ethers'
@@ -17,7 +16,6 @@ import {
   TransactionBatchResponse,
   TransactionResponse,
 } from '../../types'
-import { assert } from '../../utils'
 
 export interface L1TransportServerOptions {
   db: any
@@ -29,10 +27,36 @@ export interface L1TransportServerOptions {
 
 export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   protected name = 'L1 Transport Server'
-  protected defaultOptions = {
-    // TODO: Check if this port is used by any common software.
-    port: 7878,
-    hostname: 'localhost',
+  protected optionSettings = {
+    db: {
+      validate: (val: any) => {
+        // TODO: Figure out a real way to check that this is a LevelDB instance.
+        return val && val.db
+      },
+    },
+    port: {
+      default: 7878,
+      validate: (val: any) => {
+        return Number.isInteger(val)
+      },
+    },
+    hostname: {
+      default: 'localhost',
+      validate: (val: any) => {
+        return typeof val === 'string'
+      },
+    },
+    confirmations: {
+      validate: (val: any) => {
+        return Number.isInteger(val)
+      },
+    },
+    l1RpcProvider: {
+      validate: (val: any) => {
+        // TODO: Find a real way to check this.
+        return typeof val === 'string' || val.ready !== undefined
+      },
+    },
   }
 
   private state: {
@@ -43,8 +67,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   } = {} as any
 
   protected async _init(): Promise<void> {
-    await this._validateOptions()
-
     // TODO: I don't know if this is strictly necessary, but it's probably a good thing to do.
     if (!this.options.db.isOpen()) {
       await this.options.db.open()
@@ -69,33 +91,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
   protected async _stop(): Promise<void> {
     this.state.server.close()
-  }
-
-  private async _validateOptions(): Promise<void> {
-    // TODO: Maybe standardize this to reduce duplicated code?
-
-    assert(() => {
-      return this.options.db && this.options.db.db
-    }, `db option is not a valid LevelUP database: ${this.options.db}`)
-
-    assert(() => {
-      return Number.isInteger(this.options.confirmations)
-    }, `confirmations option is not a valid integer: ${this.options.confirmations}`)
-
-    assert(() => {
-      return Number.isInteger(this.options.port)
-    }, `port option is not a valid integer: ${this.options.port}`)
-
-    assert(() => {
-      return typeof this.options.hostname === 'string'
-    }, `hostname option is not a valid string: ${this.options.hostname}`)
-
-    assert(() => {
-      return (
-        typeof this.options.l1RpcProvider === 'string' ||
-        this.options.l1RpcProvider.ready !== undefined
-      )
-    }, `l1RpcProvider option is not a valid JSON-RPC endpoint or JsonRpcProvider instance: ${this.options.l1RpcProvider}`)
   }
 
   /**

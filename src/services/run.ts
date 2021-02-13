@@ -35,7 +35,9 @@ import { L1DataTransportService } from './main/service'
     await service.start()
   } catch (err) {
     console.error(
-      `Well, that's that. We ran into a fatal error. Here's the dump. Goodbye!\n ${err}`
+      `Well, that's that. We ran into a fatal error. Here's the dump. Goodbye!`
     )
+
+    throw err
   }
 })()
