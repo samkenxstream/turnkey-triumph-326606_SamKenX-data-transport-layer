@@ -99,15 +99,20 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.options.addressManager
     )
 
-    // Assume we won't have too many of these events. Doubtful we'll ever have the 2000+ that would
-    // break this statement when interacting with alchemy or infura. But probably worth figuring
-    // out a better way to get this information, perhaps our contracts should always emit an event
-    // upon creation.
-    this.state.startingL1BlockNumber = (
-      await this.state.contracts.Lib_AddressManager.queryFilter(
-        this.state.contracts.Lib_AddressManager.filters.AddressSet()
+    const startingL1BlockNumber = await this.state.db.getStartingL1Block()
+    if (startingL1BlockNumber) {
+      this.state.startingL1BlockNumber = startingL1BlockNumber
+    } else {
+      this.logger.info(
+        `Attempting to find an appropriate L1 block height to being sync...`
       )
-    )[0].blockNumber
+      this.state.startingL1BlockNumber = await this._findStartingL1BlockNumber()
+      this.logger.info(
+        `Starting sync at block ${colors.yellow(
+          `${this.state.startingL1BlockNumber}`
+        )}`
+      )
+    }
 
     // Store the total number of submitted transactions so the server can tell clients if we're
     // done syncing or not
@@ -301,7 +306,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // TODO: Should be much easier than this. Need to change the params of this event.
     const relevantAddressSetEvents = (
       await this.state.contracts.Lib_AddressManager.queryFilter(
-        this.state.contracts.Lib_AddressManager.filters.AddressSet()
+        this.state.contracts.Lib_AddressManager.filters.AddressSet(),
+        this.state.startingL1BlockNumber
       )
     ).filter((event) => {
       return (
@@ -316,6 +322,24 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // Address wasn't set before this.
       return ZERO_ADDRESS
     }
+  }
+
+  private async _findStartingL1BlockNumber(): Promise<number> {
+    const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
+
+    for (let i = 0; i < currentL1Block; i += 1000000) {
+      const events = await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet(),
+        i,
+        Math.min(i + 1000000, currentL1Block)
+      )
+
+      if (events.length > 0) {
+        return events[0].blockNumber
+      }
+    }
+
+    throw new Error(`Unable to find appropriate L1 starting block number`)
   }
 
   private async _validateOptions(): Promise<void> {

@@ -16,6 +16,7 @@ const TRANSPORT_DB_KEYS = {
   TRANSACTION_BATCH: `batch:transaction`,
   STATE_ROOT: `stateroot`,
   STATE_ROOT_BATCH: `batch:stateroot`,
+  STARTING_L1_BLOCK: `l1:starting`,
   HIGHEST_L2_BLOCK: `l2:highest`,
   HIGHEST_SYNCED_BLOCK: `synced:highest`,
 }
@@ -163,6 +164,20 @@ export class TransportDB {
     return this.db.put<number>([
       {
         key: TRANSPORT_DB_KEYS.HIGHEST_SYNCED_BLOCK,
+        index: 0,
+        value: block,
+      },
+    ])
+  }
+
+  public async getStartingL1Block(): Promise<number> {
+    return this.db.get<number>(TRANSPORT_DB_KEYS.STARTING_L1_BLOCK, 0)
+  }
+
+  public async setStartingL1Block(block: number): Promise<void> {
+    return this.db.put<number>([
+      {
+        key: TRANSPORT_DB_KEYS.STARTING_L1_BLOCK,
         index: 0,
         value: block,
       },
