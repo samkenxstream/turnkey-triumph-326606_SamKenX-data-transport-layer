@@ -23,7 +23,8 @@ jobs:
               $HOME/docker
           cd $HOME/docker
           BRANCH=${GITHUB_REF##*/}
-          ./build.sh -s data-transport-layer -b $BRANCH
+          REMOTE="https://github.com/${{ github.repository }}"
+          ./build.sh -s data-transport-layer -b $BRANCH -r $REMOTE
           if [ $BRANCH == 'master' ]; then
               docker push ethereumoptimism/data-transport-layer:latest
           elif [[ $BRANCH == 'testnet' ]]; then
