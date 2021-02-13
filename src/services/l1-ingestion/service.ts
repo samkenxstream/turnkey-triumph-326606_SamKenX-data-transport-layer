@@ -104,7 +104,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.state.startingL1BlockNumber = startingL1BlockNumber
     } else {
       this.logger.info(
-        `Attempting to find an appropriate L1 block height to being sync...`
+        `Attempting to find an appropriate L1 block height to begin sync...`
       )
       this.state.startingL1BlockNumber = await this._findStartingL1BlockNumber()
       this.logger.info(
