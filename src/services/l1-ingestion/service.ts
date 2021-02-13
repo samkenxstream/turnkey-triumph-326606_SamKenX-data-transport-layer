@@ -112,6 +112,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           `${this.state.startingL1BlockNumber}`
         )}`
       )
+
+      await this.state.db.setStartingL1Block(this.state.startingL1BlockNumber)
     }
 
     // Store the total number of submitted transactions so the server can tell clients if we're
