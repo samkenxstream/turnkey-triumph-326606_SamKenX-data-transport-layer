@@ -121,7 +121,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           timestamp: BigNumber.from(context.timestamp).toNumber(),
           gasLimit: BigNumber.from(extraData.gasLimit).toNumber(),
           target: '0x4200000000000000000000000000000000000005', // TODO: Maybe this needs to be configurable?
-          origin: '0x0000000000000000000000000000000000000000', // TODO: Also this.
+          origin: null,
           data: toHexString(sequencerTransaction),
           queueOrigin: 'sequencer',
           type,
