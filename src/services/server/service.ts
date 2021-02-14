@@ -16,6 +16,7 @@ import {
   TransactionBatchResponse,
   TransactionResponse,
 } from '../../types'
+import { validators } from '../../utils'
 
 export interface L1TransportServerOptions {
   db: any
@@ -29,32 +30,22 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
   protected name = 'L1 Transport Server'
   protected optionSettings = {
     db: {
-      validate: (val: any) => {
-        // TODO: Figure out a real way to check that this is a LevelDB instance.
-        return val && val.db
-      },
+      validate: validators.isLevelUP,
     },
     port: {
       default: 7878,
-      validate: (val: any) => {
-        return Number.isInteger(val)
-      },
+      validate: validators.isInteger,
     },
     hostname: {
       default: 'localhost',
-      validate: (val: any) => {
-        return typeof val === 'string'
-      },
+      validate: validators.isString,
     },
     confirmations: {
-      validate: (val: any) => {
-        return Number.isInteger(val)
-      },
+      validate: validators.isInteger,
     },
     l1RpcProvider: {
       validate: (val: any) => {
-        // TODO: Find a real way to check this.
-        return typeof val === 'string' || val.ready !== undefined
+        return validators.isUrl(val) || validators.isJsonRpcProvider(val)
       },
     },
   }

@@ -12,6 +12,7 @@ import {
   loadOptimismContracts,
   ZERO_ADDRESS,
   loadContract,
+  validators,
 } from '../../utils'
 import {
   EventArgsAddressSet,
@@ -37,49 +38,30 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
   protected optionSettings = {
     db: {
-      validate: (val: any) => {
-        // TODO: Figure out a real way to check that this is a LevelDB instance.
-        return val && val.db !== undefined
-      },
+      validate: validators.isLevelUP,
     },
     addressManager: {
-      validate: (val: any) => {
-        return (
-          typeof val === 'string' &&
-          val.startsWith('0x') &&
-          val.length === 42 &&
-          fromHexString(val).length === 20
-        )
-      },
+      validate: validators.isAddress,
     },
     confirmations: {
       default: 12,
-      validate: (val: any) => {
-        return Number.isInteger(val)
-      },
+      validate: validators.isInteger,
     },
     pollingInterval: {
       default: 5000,
-      validate: (val: any) => {
-        return Number.isInteger(val)
-      },
+      validate: validators.isInteger,
     },
     logsPerPollingInterval: {
       default: 2000,
-      validate: (val: any) => {
-        return Number.isInteger(val)
-      },
+      validate: validators.isInteger,
     },
     dangerouslyCatchAllErrors: {
       default: false,
-      validate: (val: any) => {
-        return typeof val === 'boolean'
-      },
+      validate: validators.isBoolean,
     },
     l1RpcProvider: {
       validate: (val: any) => {
-        // TODO: Find a real way to check this.
-        return typeof val === 'string' || val.ready !== undefined
+        return validators.isUrl(val) || validators.isJsonRpcProvider(val)
       },
     },
   }
