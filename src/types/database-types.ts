@@ -34,6 +34,7 @@ export interface TransactionEntry {
   queueIndex: number | null
   type: 'EIP155' | 'ETH_SIGN' | null
   decoded: DecodedSequencerBatchTransaction | null
+  confirmed: boolean
 }
 
 interface BatchEntry {
@@ -55,4 +56,5 @@ export interface StateRootEntry {
   index: number
   batchIndex: number
   value: string
+  confirmed: boolean
 }

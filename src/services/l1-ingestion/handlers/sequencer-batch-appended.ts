@@ -127,6 +127,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           type,
           queueIndex: null,
           decoded,
+          confirmed: true,
         })
 
         nextTxPointer += 3 + sequencerTransaction.length
@@ -158,6 +159,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           type: 'EIP155',
           queueIndex: queueIndex.toNumber(),
           decoded: null,
+          confirmed: true,
         })
 
         enqueuedCount++

@@ -8,9 +8,16 @@ import {
   L1IngestionServiceOptions,
 } from '../l1-ingestion/service'
 import { L1TransportServer, L1TransportServerOptions } from '../server/service'
+import {
+  L2IngestionService,
+  L2IngestionServiceOptions,
+} from '../l2-ingestion/service'
 
 type L1DataTransportServiceOptions = L1IngestionServiceOptions &
-  L1TransportServerOptions
+  L1TransportServerOptions &
+  Partial<L2IngestionServiceOptions> & {
+    syncFromL2?: boolean
+  }
 
 export class L1DataTransportService extends BaseService<L1DataTransportServiceOptions> {
   protected name = 'L1 Data Transport Service'
@@ -19,6 +26,7 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
     db: any
     l1IngestionService: L1IngestionService
     l1TransportServer: L1TransportServer
+    l2IngestionService?: L2IngestionService
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -35,8 +43,20 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
       db: this.state.db,
     })
 
+    // Optionally enable sync from L2.
+    if (this.options.syncFromL2) {
+      this.state.l2IngestionService = new L2IngestionService({
+        ...(this.options as any), // TODO: Correct thing to do here is to assert this type.
+        db: this.state.db,
+      })
+    }
+
     await this.state.l1IngestionService.init()
     await this.state.l1TransportServer.init()
+
+    if (this.options.syncFromL2) {
+      await this.state.l2IngestionService.init()
+    }
   }
 
   protected async _start(): Promise<void> {
