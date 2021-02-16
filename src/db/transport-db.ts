@@ -391,6 +391,10 @@ export class TransportDB {
     key: string,
     index: number
   ): Promise<TEntry | null> {
+    if (index === null) {
+      return null
+    }
+
     return this.db.get<TEntry>(`${key}:index`, index)
   }
 

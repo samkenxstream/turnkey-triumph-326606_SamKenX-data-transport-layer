@@ -1,3 +1,5 @@
+import { toHexString } from '@eth-optimism/core-utils'
+
 /**
  * Basic timeout-based async sleep function.
  * @param ms Number of milliseconds to sleep.
@@ -15,5 +17,13 @@ export const assert = (condition: () => boolean, reason?: string) => {
     }
   } catch (err) {
     throw new Error(`Assertion failed: ${reason}\n${err}`)
+  }
+}
+
+export const toRpcHexString = (n: number): string => {
+  if (n === 0) {
+    return '0x0'
+  } else {
+    return '0x' + toHexString(n).slice(2).replace(/^0+/, '')
   }
 }

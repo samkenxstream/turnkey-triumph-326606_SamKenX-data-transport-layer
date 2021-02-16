@@ -23,10 +23,10 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@eth-optimism/contracts@^0.1.4":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@eth-optimism/contracts/-/contracts-0.1.5.tgz#e1e9b5d1f207c8b627a3ef3e2c509bd4b50a7b68"
-  integrity sha512-moWebiYRk14SOlqB1K1NQOfGiI69C+77KP3uVYepGAkqTrhFa/KqUzdYDI4lOC73xIXIgF3kwu3MaEYf96OU+Q==
+"@eth-optimism/contracts@0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@eth-optimism/contracts/-/contracts-0.1.4.tgz#a918bffcdfa0ce22c1af3b091a81af732f58a294"
+  integrity sha512-JlbhPkYDgurQwlar1L90XTAG0QK8Sd2WCU8Zaa6BXn+Bg1mVe3g80samE0YaOFNHmSscjtvjXqy3B/d0tzIH7w==
   dependencies:
     "@eth-optimism/solc" "^0.6.12-alpha.1"
     "@ethersproject/abstract-provider" "^5.0.8"
@@ -35,7 +35,6 @@
     "@openzeppelin/contracts" "^3.3.0"
     ethers "5.0.0"
     ganache-core "^2.12.1"
-    glob "^7.1.6"
 
 "@eth-optimism/core-utils@^0.1.5":
   version "0.1.5"
@@ -3825,7 +3824,7 @@ glob@7.1.3:
     once "^1.3.0"
     path-is-absolute "^1.0.0"
 
-glob@7.1.6, glob@^7.1.1, glob@^7.1.3, glob@^7.1.6, glob@~7.1.6:
+glob@7.1.6, glob@^7.1.1, glob@^7.1.3, glob@~7.1.6:
   version "7.1.6"
   resolved "https://registry.yarnpkg.com/glob/-/glob-7.1.6.tgz#141f33b81a7c2492e125594307480c46679278a6"
   integrity sha512-LwaxwyZ72Lk7vZINtNNrywX0ZuLyStrdDtabefZKAY5ZGJhVtgdznluResxNmPitE0SAO+O26sWTHeKSI2wMBA==

@@ -5,7 +5,7 @@ import colors from 'colors/safe'
 
 /* Imports: Internal */
 import { TransportDB } from '../../db/transport-db'
-import { sleep, validators } from '../../utils'
+import { sleep, toRpcHexString, validators } from '../../utils'
 import { handleSequencerBlock } from './handlers/transaction'
 
 export interface L2IngestionServiceOptions {
@@ -33,7 +33,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
       validate: validators.isInteger,
     },
     transactionsPerPollingInterval: {
-      default: 2000,
+      default: 1000,
       validate: validators.isInteger,
     },
     dangerouslyCatchAllErrors: {
@@ -60,12 +60,15 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     // to start. We won't overwrite any confirmed transactions, so this doesn't have to be exact.
     const latestTransaction = await this.state.db.getLatestTransaction()
     if (latestTransaction) {
-      this.state.highestSyncedL2BlockNumber = latestTransaction.index
+      this.state.highestSyncedL2BlockNumber = Math.max(
+        latestTransaction.index,
+        1
+      )
       this.logger.info(
         `Starting sync to sequencer blocks from height: ${this.state.highestSyncedL2BlockNumber}`
       )
     } else {
-      this.state.highestSyncedL2BlockNumber = 0
+      this.state.highestSyncedL2BlockNumber = 1
     }
   }
 
@@ -126,9 +129,10 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     startBlockNumber: number,
     endBlockNumber: number
   ): Promise<void> {
-    const blocks = await this.state.l2RpcProvider.send('rollup_getBlockRange', [
-      startBlockNumber,
-      endBlockNumber,
+    const blocks = await this.state.l2RpcProvider.send('eth_getBlockRange', [
+      toRpcHexString(startBlockNumber),
+      toRpcHexString(endBlockNumber),
+      true,
     ])
 
     for (const block of blocks) {

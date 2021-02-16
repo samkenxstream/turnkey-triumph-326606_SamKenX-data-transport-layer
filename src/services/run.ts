@@ -34,6 +34,10 @@ import { L1DataTransportService } from './main/service'
       syncFromL2: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
       showUnconfirmedTransactions:
         process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
+      transactionsPerPollingInterval: parseInt(
+        process.env.DATA_TRANSPORT_LAYER__TRANSACTIONS_PER_POLLING_INTERVAL,
+        10
+      ),
     })
 
     await service.start()

@@ -263,7 +263,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (): Promise<TransactionResponse> => {
         let transaction = await this.state.db.getLatestFullTransaction()
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedTransaction = await this.state.db.getLatestFullTransaction()
+          const unconfirmedTransaction = await this.state.db.getLatestFullUnconfirmedTransaction()
 
           if (
             unconfirmedTransaction !== null &&
@@ -300,7 +300,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           BigNumber.from(req.params.index).toNumber()
         )
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedTransaction = await this.state.db.getFullTransactionByIndex(
+          const unconfirmedTransaction = await this.state.db.getFullUnconfirmedTransactionByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
 

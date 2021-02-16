@@ -63,6 +63,7 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
     await Promise.all([
       this.state.l1IngestionService.start(),
       this.state.l1TransportServer.start(),
+      this.options.syncFromL2 ? this.state.l2IngestionService.start() : null,
     ])
   }
 
@@ -70,6 +71,7 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
     await Promise.all([
       this.state.l1IngestionService.stop(),
       this.state.l1TransportServer.stop(),
+      this.options.syncFromL2 ? this.state.l2IngestionService.stop() : null,
     ])
 
     await this.state.db.close()

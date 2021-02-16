@@ -1,4 +1,5 @@
 /* Imports: Internal */
+import { BigNumber } from 'ethers'
 import { TransportDB } from '../../../db/transport-db'
 import { StateRootEntry, TransactionEntry } from '../../../types'
 
@@ -9,8 +10,35 @@ export const handleSequencerBlock = {
     transactionEntry: TransactionEntry
     stateRootEntry: StateRootEntry
   }> => {
-    // TODO: This, clearly.
-    return
+    const transaction = block.transactions[0]
+
+    const transactionEntry: TransactionEntry = {
+      index: BigNumber.from(block.number).toNumber() - 1,
+      batchIndex: null,
+      data: transaction.input,
+      blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
+      timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
+      gasLimit: BigNumber.from(transaction.gas).toNumber(),
+      target: transaction.to,
+      origin: transaction.from,
+      queueOrigin: transaction.queueOrigin,
+      queueIndex: transaction.queueIndex,
+      type: transaction.txType,
+      decoded: null,
+      confirmed: false,
+    }
+
+    const stateRootEntry: StateRootEntry = {
+      index: BigNumber.from(block.number).toNumber() - 1,
+      batchIndex: null,
+      value: block.stateRoot,
+      confirmed: false,
+    }
+
+    return {
+      transactionEntry,
+      stateRootEntry,
+    }
   },
   storeBlock: async (
     entry: {
