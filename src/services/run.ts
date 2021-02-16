@@ -30,6 +30,10 @@ import { L1DataTransportService } from './main/service'
       dangerouslyCatchAllErrors:
         process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS ===
         'true',
+      l2RpcProvider: process.env.DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT,
+      syncFromL2: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
+      showUnconfirmedTransactions:
+        process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
     })
 
     await service.start()

@@ -19,27 +19,10 @@ export const handleSequencerBlock = {
     },
     db: TransportDB
   ): Promise<void> => {
-    // Some repeated code here that I don't love, but whatever for now. My primary concern is
-    // that we may have a race condition here where an unconfirmed transaction can overwrite a
-    // confirmed transaction. The !== null checks below are intended to fix this issue in the
-    // average case, but could potentially fail if this query happens immediately before the
-    // confirmed transaction is written to the database. Not sure of the cleanest way to handle
-    // this issue.
-
-    const existingTransaction = await db.getTransactionByIndex(
-      entry.transactionEntry.index
-    )
-
-    if (existingTransaction !== null) {
-      await db.putTransactionEntries([entry.transactionEntry])
-    }
-
-    const existingStateRoot = await db.getStateRootByIndex(
-      entry.stateRootEntry.index
-    )
-
-    if (existingStateRoot !== null) {
-      await db.putStateRootEntries([entry.stateRootEntry])
-    }
+    // Having separate indices for confirmed/unconfirmed means we never have to worry about
+    // accidentally overwriting a confirmed transaction with an unconfirmed one. Unconfirmed
+    // transactions are purely extra information.
+    await db.putUnconfirmedTransactionEntries([entry.transactionEntry])
+    await db.putUnconfirmedStateRootEntries([entry.stateRootEntry])
   },
 }
