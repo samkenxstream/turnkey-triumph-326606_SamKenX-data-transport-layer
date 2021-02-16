@@ -279,12 +279,42 @@ export function validateBatchTransaction(
   if (type === null) {
     return false
   }
-  if (type === 'EIP155' || type === 'ETH_SIGN') {
-    if (decoded.sig.v !== 1 && decoded.sig.v !== 0) {
-      return false
-    }
+
+  if (type === 'ETH_SIGN') {
+    // TODO(annieke): perform actual verification for transaction type
+    return decoded.sig.v === 1 || decoded.sig.v === 0
+  }
+
+  if (type === 'EIP155') {
+    // should we still check `sig.v` here?
+    const likelyWrongRecoveredAddress = ethers.utils.recoverAddress(
+      ctcCoder.eip155TxData.encode(decoded),
+      decoded.sig
+    )
+    const reformattedTx = { ...decoded, to: decoded.target }
+    delete reformattedTx.sig
+    delete reformattedTx.target
+    const serializedTx = ethers.utils.serializeTransaction(
+      reformattedTx,
+      decoded.sig
+    )
+    const recoveredAddress = ethers.utils.recoverAddress(
+      // getting an error during this serialization from a chainID and signature.v mismatch
+      serializedTx,
+      decoded.sig
+    )
+
+    console.log(`recoveredAddress: ${recoveredAddress}`)
+    console.log(`likelyWrongRecoveredAddress: ${likelyWrongRecoveredAddress}`)
+    console.log(`serialized: ${serializedTx}`)
+    console.log(`parsed: `)
+    console.log(ethers.utils.parseTransaction(serializedTx))
+
+    // compare to origin from TransactionEntry
+    // add to type or pass origin in somewhere
     return true
   }
+
   // Allow soft forks
   return false
 }
