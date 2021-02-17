@@ -15,7 +15,7 @@ import {
 
 type L1DataTransportServiceOptions = L1IngestionServiceOptions &
   L1TransportServerOptions &
-  Partial<L2IngestionServiceOptions> & {
+  L2IngestionServiceOptions & {
     syncFromL1?: boolean
     syncFromL2?: boolean
   }

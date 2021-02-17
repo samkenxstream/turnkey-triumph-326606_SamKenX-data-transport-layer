@@ -27,3 +27,11 @@ export const toRpcHexString = (n: number): string => {
     return '0x' + toHexString(n).slice(2).replace(/^0+/, '')
   }
 }
+
+export const padHexString = (str: string, length: number): string => {
+  if (str.length === 2 + length * 2) {
+    return str
+  } else {
+    return '0x' + str.slice(2).padStart(length * 2, '0')
+  }
+}

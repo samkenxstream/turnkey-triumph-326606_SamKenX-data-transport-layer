@@ -1,5 +1,5 @@
 /* Imports: Internal */
-import { ctcCoder } from '@eth-optimism/core-utils'
+import { ctcCoder, ZERO_ADDRESS } from '@eth-optimism/core-utils'
 import { BigNumber } from 'ethers'
 import { TransportDB } from '../../../db/transport-db'
 import {
@@ -7,10 +7,16 @@ import {
   StateRootEntry,
   TransactionEntry,
 } from '../../../types'
+import {
+  padHexString,
+  SEQUENCER_ENTRYPOINT_ADDRESS,
+  SEQUENCER_GAS_LIMIT,
+} from '../../../utils'
 
 export const handleSequencerBlock = {
   parseBlock: async (
-    block: any
+    block: any,
+    chainId: number
   ): Promise<{
     transactionEntry: TransactionEntry
     stateRootEntry: StateRootEntry
@@ -21,14 +27,14 @@ export const handleSequencerBlock = {
     if (transaction.queueOrigin === 'sequencer') {
       const decodedTransaction = {
         sig: {
-          v: BigNumber.from(transaction.v).toNumber(),
-          r: transaction.r,
-          s: transaction.s,
+          v: BigNumber.from(transaction.v).toNumber() - 2 * chainId - 35,
+          r: padHexString(transaction.r, 32),
+          s: padHexString(transaction.s, 32),
         },
         gasLimit: BigNumber.from(transaction.gas).toNumber(),
         gasPrice: BigNumber.from(transaction.gasPrice).toNumber(), // ?
         nonce: BigNumber.from(transaction.nonce).toNumber(),
-        target: transaction.to,
+        target: transaction.to || ZERO_ADDRESS, // ?
         data: transaction.input,
       }
 
@@ -41,8 +47,8 @@ export const handleSequencerBlock = {
         ),
         blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
         timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
-        gasLimit: 8_000_000, // ?
-        target: '0x4200000000000000000000000000000000000005',
+        gasLimit: SEQUENCER_GAS_LIMIT, // ?
+        target: SEQUENCER_ENTRYPOINT_ADDRESS,
         origin: null,
         queueOrigin: transaction.queueOrigin,
         queueIndex: transaction.queueIndex,
@@ -51,19 +57,18 @@ export const handleSequencerBlock = {
         confirmed: false,
       }
     } else {
-      // TODO: Confirm that this is correct.
       transactionEntry = {
         index: BigNumber.from(transaction.index).toNumber(),
         batchIndex: null,
-        data: transaction.input,
         blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
         timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
         gasLimit: BigNumber.from(transaction.gas).toNumber(),
         target: transaction.to,
         origin: transaction.l1TxOrigin,
+        data: transaction.input,
         queueOrigin: transaction.queueOrigin,
-        queueIndex: transaction.queueIndex,
         type: transaction.txType,
+        queueIndex: BigNumber.from(transaction.queueIndex).toNumber(),
         decoded: null,
         confirmed: false,
       }
@@ -98,11 +103,11 @@ export const handleSequencerBlock = {
 
 const maybeEncodeSequencerBatchTransaction = (
   transaction: DecodedSequencerBatchTransaction,
-  type: 'EIP155' | 'ETH_SIGN' | null
+  type: 'EIP155' | 'EthSign' | null
 ): string => {
   if (type === 'EIP155') {
     return ctcCoder.eip155TxData.encode(transaction)
-  } else if (type === 'ETH_SIGN') {
+  } else if (type === 'EthSign') {
     return ctcCoder.ethSignTxData.encode(transaction)
   } else {
     // Throw?

@@ -11,6 +11,7 @@ import { handleSequencerBlock } from './handlers/transaction'
 export interface L2IngestionServiceOptions {
   db: any
   l2RpcProvider: string | JsonRpcProvider
+  l2ChainId: number
   pollingInterval: number
   transactionsPerPollingInterval: number
   dangerouslyCatchAllErrors?: boolean
@@ -27,6 +28,9 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
       validate: (val: any) => {
         return validators.isUrl(val) || validators.isJsonRpcProvider(val)
       },
+    },
+    l2Chainid: {
+      validate: validators.isInteger,
     },
     pollingInterval: {
       default: 5000,
@@ -131,13 +135,15 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
   ): Promise<void> {
     const blocks = await this.state.l2RpcProvider.send('eth_getBlockRange', [
       toRpcHexString(startBlockNumber),
-      toRpcHexString(startBlockNumber + 1),
+      toRpcHexString(endBlockNumber),
       true,
     ])
 
     for (const block of blocks) {
-      console.log(block)
-      const entry = await handleSequencerBlock.parseBlock(block)
+      const entry = await handleSequencerBlock.parseBlock(
+        block,
+        this.options.l2ChainId
+      )
       await handleSequencerBlock.storeBlock(entry, this.state.db)
     }
   }

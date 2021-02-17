@@ -262,42 +262,6 @@ export class TransportDB {
     )
   }
 
-  public async getFullUnconfirmedTransactionByIndex(
-    index: number
-  ): Promise<TransactionEntry> {
-    const transaction = await this.getUnconfirmedTransactionByIndex(index)
-    if (transaction === null) {
-      return null
-    }
-
-    if (transaction.queueOrigin === 'l1') {
-      const enqueue = await this.getEnqueueByIndex(transaction.queueIndex)
-      if (enqueue === null) {
-        return null
-      }
-
-      return {
-        ...transaction,
-        ...{
-          blockNumber: enqueue.blockNumber,
-          timestamp: enqueue.timestamp,
-          gasLimit: enqueue.gasLimit,
-          target: enqueue.target,
-          origin: enqueue.origin,
-          data: enqueue.data,
-        },
-      }
-    } else {
-      return transaction
-    }
-  }
-
-  public async getLatestFullUnconfirmedTransaction(): Promise<TransactionEntry> {
-    return this.getFullUnconfirmedTransactionByIndex(
-      await this._getLatestEntryIndex(TRANSPORT_DB_KEYS.UNCONFIRMED_TRANSACTION)
-    )
-  }
-
   public async getFullTransactionsByIndexRange(
     start: number,
     end: number
