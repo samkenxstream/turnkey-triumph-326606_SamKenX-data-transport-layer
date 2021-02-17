@@ -131,11 +131,12 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
   ): Promise<void> {
     const blocks = await this.state.l2RpcProvider.send('eth_getBlockRange', [
       toRpcHexString(startBlockNumber),
-      toRpcHexString(endBlockNumber),
+      toRpcHexString(startBlockNumber + 1),
       true,
     ])
 
     for (const block of blocks) {
+      console.log(block)
       const entry = await handleSequencerBlock.parseBlock(block)
       await handleSequencerBlock.storeBlock(entry, this.state.db)
     }

@@ -197,11 +197,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const blockNumber = Math.max(0, tip - this.options.confirmations)
 
         if (number > blockNumber) {
-           return {
-             blockNumber: null,
-             timestamp: null,
-             blockHash: null,
-           }
+          return {
+            blockNumber: null,
+            timestamp: null,
+            blockHash: null,
+          }
         }
 
         const block = await this.state.l1RpcProvider.getBlock(number)

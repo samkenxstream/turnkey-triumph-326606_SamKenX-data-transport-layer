@@ -31,6 +31,7 @@ import { L1DataTransportService } from './main/service'
         process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS ===
         'true',
       l2RpcProvider: process.env.DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT,
+      syncFromL1: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L1 === 'true',
       syncFromL2: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
       showUnconfirmedTransactions:
         process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',

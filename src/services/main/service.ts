@@ -16,6 +16,7 @@ import {
 type L1DataTransportServiceOptions = L1IngestionServiceOptions &
   L1TransportServerOptions &
   Partial<L2IngestionServiceOptions> & {
+    syncFromL1?: boolean
     syncFromL2?: boolean
   }
 
@@ -24,24 +25,27 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
 
   private state: {
     db: any
-    l1IngestionService: L1IngestionService
-    l1TransportServer: L1TransportServer
+    l1IngestionService?: L1IngestionService
     l2IngestionService?: L2IngestionService
+    l1TransportServer: L1TransportServer
   } = {} as any
 
   protected async _init(): Promise<void> {
     this.state.db = level(this.options.db)
     await this.state.db.open()
 
-    this.state.l1IngestionService = new L1IngestionService({
-      ...this.options,
-      db: this.state.db,
-    })
-
     this.state.l1TransportServer = new L1TransportServer({
       ...this.options,
       db: this.state.db,
     })
+
+    // Optionally enable sync from L1.
+    if (this.options.syncFromL1) {
+      this.state.l1IngestionService = new L1IngestionService({
+        ...this.options,
+        db: this.state.db,
+      })
+    }
 
     // Optionally enable sync from L2.
     if (this.options.syncFromL2) {
@@ -51,8 +55,11 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
       })
     }
 
-    await this.state.l1IngestionService.init()
     await this.state.l1TransportServer.init()
+
+    if (this.options.syncFromL1) {
+      await this.state.l1IngestionService.init()
+    }
 
     if (this.options.syncFromL2) {
       await this.state.l2IngestionService.init()
@@ -61,16 +68,16 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
 
   protected async _start(): Promise<void> {
     await Promise.all([
-      this.state.l1IngestionService.start(),
       this.state.l1TransportServer.start(),
+      this.options.syncFromL1 ? this.state.l1IngestionService.start() : null,
       this.options.syncFromL2 ? this.state.l2IngestionService.start() : null,
     ])
   }
 
   protected async _stop(): Promise<void> {
     await Promise.all([
-      this.state.l1IngestionService.stop(),
       this.state.l1TransportServer.stop(),
+      this.options.syncFromL1 ? this.state.l1IngestionService.stop() : null,
       this.options.syncFromL2 ? this.state.l2IngestionService.stop() : null,
     ])
 
