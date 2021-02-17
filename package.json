@@ -21,7 +21,7 @@
     "build": "tsc -p ."
   },
   "dependencies": {
-    "@eth-optimism/contracts": "^0.1.4",
+    "@eth-optimism/contracts": "^0.1.6",
     "@eth-optimism/core-utils": "^0.1.5",
     "@eth-optimism/service-base": "^0.0.1",
     "@ethersproject/providers": "^5.0.21",
