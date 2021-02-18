@@ -25,9 +25,19 @@ export const handleSequencerBlock = {
   }> => {
     const transaction = block.transactions[0]
 
-    let transactionEntry: TransactionEntry
+    let transactionEntry: Partial<TransactionEntry> = {
+      index: BigNumber.from(transaction.index).toNumber(),
+      batchIndex: null,
+      blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
+      timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
+      queueOrigin: transaction.queueOrigin,
+      type: parseTxType(transaction.txType),
+      queueIndex: BigNumber.from(transaction.queueIndex).toNumber(),
+      confirmed: false,
+    }
+
     if (transaction.queueOrigin === 'sequencer') {
-      const decodedTransaction = {
+      const decodedTransaction: DecodedSequencerBatchTransaction = {
         sig: {
           v: BigNumber.from(transaction.v).toNumber() - 2 * chainId - 35,
           r: padHexString(transaction.r, 32),
@@ -41,10 +51,7 @@ export const handleSequencerBlock = {
       }
 
       transactionEntry = {
-        index: BigNumber.from(transaction.index).toNumber(),
-        batchIndex: null,
-        blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
-        timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
+        ...transactionEntry,
         gasLimit: SEQUENCER_GAS_LIMIT, // ?
         target: SEQUENCER_ENTRYPOINT_ADDRESS,
         origin: null,
@@ -52,27 +59,16 @@ export const handleSequencerBlock = {
           decodedTransaction,
           transaction.txType
         ),
-        queueOrigin: transaction.queueOrigin,
-        type: parseTxType(transaction.txType),
-        queueIndex: transaction.queueIndex,
         decoded: decodedTransaction,
-        confirmed: false,
       }
     } else {
       transactionEntry = {
-        index: BigNumber.from(transaction.index).toNumber(),
-        batchIndex: null,
-        blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
-        timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
+        ...transactionEntry,
         gasLimit: BigNumber.from(transaction.gas).toNumber(),
         target: ethers.utils.getAddress(transaction.to),
         origin: ethers.utils.getAddress(transaction.l1TxOrigin),
         data: transaction.input,
-        queueOrigin: transaction.queueOrigin,
-        type: parseTxType(transaction.txType),
-        queueIndex: BigNumber.from(transaction.queueIndex).toNumber(),
         decoded: null,
-        confirmed: false,
       }
     }
 
@@ -84,7 +80,7 @@ export const handleSequencerBlock = {
     }
 
     return {
-      transactionEntry,
+      transactionEntry: transactionEntry as TransactionEntry, // Not the cleanest thing in the world. Could be improved.
       stateRootEntry,
     }
   },
