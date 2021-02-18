@@ -220,7 +220,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const enqueue = await this.state.db.getLatestEnqueue()
 
         if (enqueue === null) {
-          return null
+          return {
+            index: null,
+            target: null,
+            data: null,
+            gasLimit: null,
+            origin: null,
+            blockNumber: null,
+            timestamp: null,
+            ctcIndex: null,
+          }
         }
 
         const ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(
@@ -243,7 +252,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         )
 
         if (enqueue === null) {
-          return null
+          return {
+            index: null,
+            target: null,
+            data: null,
+            gasLimit: null,
+            origin: null,
+            blockNumber: null,
+            timestamp: null,
+            ctcIndex: null,
+          }
         }
 
         const ctcIndex = await this.state.db.getTransactionIndexByQueueIndex(

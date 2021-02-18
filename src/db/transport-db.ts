@@ -325,7 +325,8 @@ export class TransportDB {
     key: string,
     entry: TEntry
   ): Promise<void> {
-    if (entry.index > (await this._getLatestEntryIndex(key))) {
+    const latest = await this._getLatestEntryIndex(key)
+    if (entry.index >= latest) {
       await this._putLatestEntryIndex(key, entry.index)
     }
   }
