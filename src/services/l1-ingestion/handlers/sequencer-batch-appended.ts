@@ -16,6 +16,7 @@ import {
   TransactionEntry,
   EventHandlerSet,
 } from '../../../types'
+import { recoverAddress } from 'ethers/lib/utils'
 
 export const handleEventsSequencerBatchAppended: EventHandlerSet<
   EventArgsSequencerBatchAppended,
@@ -280,39 +281,45 @@ export function validateBatchTransaction(
     return false
   }
 
-  if (type === 'ETH_SIGN') {
-    // TODO(annieke): perform actual verification for transaction type
-    return decoded.sig.v === 1 || decoded.sig.v === 0
+  // The only v we currently deocde to, others considered invalid
+  if (decoded.sig.v !== 1 && decoded.sig.v !== 0) {
+    return false
   }
 
   if (type === 'EIP155') {
-    // should we still check `sig.v` here?
-    const likelyWrongRecoveredAddress = ethers.utils.recoverAddress(
-      ctcCoder.eip155TxData.encode(decoded),
-      decoded.sig
-    )
-    const reformattedTx = { ...decoded, to: decoded.target }
+    // Note: reformattedTx is a shallow copy of decoded, 
+    // so both reformatted.sig and decoded.sig point to same object
+    const reformattedTx = { ...decoded, to: decoded.target } 
     delete reformattedTx.sig
     delete reformattedTx.target
-    const serializedTx = ethers.utils.serializeTransaction(
+    
+    const reformattedSig = { ...decoded.sig }
+    reformattedSig.v += 35 + 2 * 10 // hardcode chainid 10 for now
+
+    const recoveringSig = { ...decoded.sig }
+    recoveringSig.v += 27 // copying https://github.com/ethereum-optimism/contracts-v2/blob/7b79dd66965f727faf2c68672240918e20908aa1/contracts/optimistic-ethereum/libraries/utils/Lib_ECDSAUtils.sol#L22-L43
+
+    const rawTx = ethers.utils.serializeTransaction(
       reformattedTx,
-      decoded.sig
+      reformattedSig
+      // recoveringSig
     )
+    const msgHash = ethers.utils.keccak256(rawTx)
+    
     const recoveredAddress = ethers.utils.recoverAddress(
-      // getting an error during this serialization from a chainID and signature.v mismatch
-      serializedTx,
-      decoded.sig
+      msgHash,
+      // rawTx,
+      reformattedSig
+      // recoveringSig
     )
+
+    const parsedTx = ethers.utils.parseTransaction(rawTx)
 
     console.log(`recoveredAddress: ${recoveredAddress}`)
-    console.log(`likelyWrongRecoveredAddress: ${likelyWrongRecoveredAddress}`)
-    console.log(`serialized: ${serializedTx}`)
     console.log(`parsed: `)
-    console.log(ethers.utils.parseTransaction(serializedTx))
+    console.log(parsedTx)
 
-    // compare to origin from TransactionEntry
-    // add to type or pass origin in somewhere
-    return true
+    return recoveredAddress === parsedTx.from
   }
 
   // Allow soft forks

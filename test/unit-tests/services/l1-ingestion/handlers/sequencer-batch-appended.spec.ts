@@ -71,8 +71,7 @@ describe.only('Event Handlers: OVM_CanonicalTransactionChain.SequencerBatchAppen
                 '0x449600eb202f77605ce4fb6210cd0cb2a93b0831f00af3f3ee4266778728c9be',
               s:
                 '0x590ebe4a5a275bc69b9ff190f57eebde0a88249e773e5c283e27aa9248b6d81b',
-              //  v: 0,
-              v: 27, // get tests passing
+              v: 0,
             },
             gasLimit: 8999999,
             gasPrice: 0,
