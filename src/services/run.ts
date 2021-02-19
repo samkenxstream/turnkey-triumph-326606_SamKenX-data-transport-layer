@@ -1,45 +1,39 @@
 /* Imports: External */
 import * as dotenv from 'dotenv'
+import Config from 'bcfg' // TODO: Add some types for bcfg if we get the chance.
 
 /* Imports: Internal */
 import { L1DataTransportService } from './main/service'
-
-// TODO: Clean this up and use bcfg.
 ;(async () => {
   try {
     dotenv.config()
 
+    const config = new Config('data-transport-layer')
+    config.load({
+      env: true,
+      argv: true,
+    })
+
+    // TODO: Or syntax (||) used here as a temporary way to assign defaults. We need to merge
+    // service-base#1 so that `null` is treated as an empty value and assigns defaults properly.
     const service = new L1DataTransportService({
-      db: process.env.DATA_TRANSPORT_LAYER__DB_PATH,
-      port: parseInt(process.env.DATA_TRANSPORT_LAYER__SERVER_PORT, 10),
-      hostname: process.env.DATA_TRANSPORT_LAYER__SERVER_HOSTNAME,
-      confirmations: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__CONFIRMATIONS,
-        10
-      ),
-      l1RpcProvider: process.env.DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT,
-      addressManager: process.env.DATA_TRANSPORT_LAYER__ADDRESS_MANAGER,
-      pollingInterval: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__POLLING_INTERVAL,
-        10
-      ),
-      logsPerPollingInterval: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__LOGS_PER_POLLING_INTERVAL,
-        10
-      ),
+      db: config.str('dbPath') || './db',
+      port: config.uint('serverPort') || '7878',
+      hostname: config.str('serverHostname') || 'localhost',
+      confirmations: config.uint('confirmations') || 12,
+      l1RpcProvider: config.str('l1RpcEndpoint'),
+      addressManager: config.str('addressManager'),
+      pollingInterval: config.uint('pollingInterval') || 5000,
+      logsPerPollingInterval: config.uint('logsPerPollingInterval') || 2000,
       dangerouslyCatchAllErrors:
-        process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS ===
-        'true',
-      l2RpcProvider: process.env.DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT,
-      l2ChainId: parseInt(process.env.DATA_TRANSPORT_LAYER__L2_CHAIN_ID, 10),
-      syncFromL1: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L1 === 'true',
-      syncFromL2: process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
-      showUnconfirmedTransactions:
-        process.env.DATA_TRANSPORT_LAYER__SYNC_FROM_L2 === 'true',
-      transactionsPerPollingInterval: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__TRANSACTIONS_PER_POLLING_INTERVAL,
-        10
-      ),
+        config.bool('dangerouslyCatchAllErrors') || false,
+      l2RpcProvider: config.str('l2RpcEndpoint'),
+      l2ChainId: config.uint('l2ChainId') || 69,
+      syncFromL1: config.bool('syncFromL1') || true,
+      syncFromL2: config.bool('syncFromL2') || false, // Same as above.
+      showUnconfirmedTransactions: config.bool('syncFromL2') || false, // Same as above.
+      transactionsPerPollingInterval:
+        config.uint('transactionsPerPollingInterval') || 1000,
     })
 
     await service.start()
