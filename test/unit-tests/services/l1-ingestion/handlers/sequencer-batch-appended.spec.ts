@@ -25,24 +25,6 @@ describe.only('Event Handlers: OVM_CanonicalTransactionChain.SequencerBatchAppen
     })
 
     describe('when the transaction type is EIP155 or ETH_SIGN', () => {
-      it('should mark a transaction as valid if the `v` parameter is 0', () => {
-        // CTC index 23159
-        const input1: [any, any] = [
-          'EIP155',
-          {
-            sig: {
-              v: 0,
-            },
-          },
-        ]
-
-        const output1 = validateBatchTransaction(...input1)
-
-        const expected1 = true
-
-        expect(output1).to.equal(expected1)
-      })
-
       it('should mark a transaction as invalid if the `v` parameter is greater than 1', () => {
         // CTC index 23159
         const input1: [any, any] = [
@@ -61,7 +43,7 @@ describe.only('Event Handlers: OVM_CanonicalTransactionChain.SequencerBatchAppen
         expect(output1).to.equal(expected1)
       })
 
-      it.only('should validate a correctly signed transaction', () => {
+      it('should validate a correctly signed EIP155 transaction', () => {
         // CTC index 23159
         const input1: [any, any] = [
           'EIP155',
@@ -85,6 +67,35 @@ describe.only('Event Handlers: OVM_CanonicalTransactionChain.SequencerBatchAppen
         const output1 = validateBatchTransaction(...input1)
 
         const expected1 = true
+
+        expect(output1).to.equal(expected1)
+      })
+
+      it('should not validate a slightly-altered signed EIP155 transaction', () => {
+        // altered CTC index 23159
+        const input1: [any, any] = [
+          'EIP155',
+          {
+            sig: {
+              // slightly altered r
+              r:
+                '0x420600eb202f42005ce4fb6210cd0cb2a93b0831f00af3f3ee4266420728c9be',
+              s:
+                '0x590ebe4a5a275bc69b9ff190f57eebde0a88249e773e5c283e27aa9248b6d81b',
+              v: 0,
+            },
+            gasLimit: 8999999,
+            gasPrice: 0,
+            nonce: 21032,
+            target: '0x686cbd15bbc680f8261c7502c360aa44a2593de6',
+            data:
+              '0xbfa005ce000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000602a4c150000000000000000000000000000000000000000000000000000000000000001534e58000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000014f343f06d0c90000',
+          },
+        ]
+
+        const output1 = validateBatchTransaction(...input1)
+
+        const expected1 = false
 
         expect(output1).to.equal(expected1)
       })

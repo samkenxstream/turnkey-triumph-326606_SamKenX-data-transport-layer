@@ -276,50 +276,40 @@ export function validateBatchTransaction(
   type: string | null,
   decoded: DecodedSequencerBatchTransaction | null
 ): boolean {
-  // Unknown types are considered invalid
-  if (type === null) {
+  const validTypes = ['EIP155', 'ETH_SIGN']
+  const validV = [0, 1]
+  // Unknown types and v are considered invalid
+  if (!validTypes.includes(type) || !validV.includes(decoded.sig.v)) {
     return false
   }
 
-  // The only v we currently deocde to, others considered invalid
-  if (decoded.sig.v !== 1 && decoded.sig.v !== 0) {
-    return false
-  }
+  switch (type) {
+    case 'EIP155':
+      // Note: reformattedTx is a shallow copy of decoded,
+      // so both reformatted.sig and decoded.sig point to same object
+      const reformattedTx = { ...decoded, to: decoded.target }
+      delete reformattedTx.sig
+      delete reformattedTx.target
 
-  if (type === 'EIP155') {
-    // Note: reformattedTx is a shallow copy of decoded, 
-    // so both reformatted.sig and decoded.sig point to same object
-    const reformattedTx = { ...decoded, to: decoded.target } 
-    delete reformattedTx.sig
-    delete reformattedTx.target
-    
-    const reformattedSig = { ...decoded.sig }
-    reformattedSig.v += 35 + 2 * 10 // hardcode chainid 10 for now
+      const signature = ethers.utils.joinSignature(decoded.sig)
 
-    const recoveringSig = { ...decoded.sig }
-    recoveringSig.v += 27 // copying https://github.com/ethereum-optimism/contracts-v2/blob/7b79dd66965f727faf2c68672240918e20908aa1/contracts/optimistic-ethereum/libraries/utils/Lib_ECDSAUtils.sol#L22-L43
+      const unsignedTx = ethers.utils.serializeTransaction(reformattedTx)
+      const recoveredAddress = ethers.utils.recoverAddress(
+        ethers.utils.keccak256(unsignedTx),
+        signature
+      )
 
-    const rawTx = ethers.utils.serializeTransaction(
-      reformattedTx,
-      reformattedSig
-      // recoveringSig
-    )
-    const msgHash = ethers.utils.keccak256(rawTx)
-    
-    const recoveredAddress = ethers.utils.recoverAddress(
-      msgHash,
-      // rawTx,
-      reformattedSig
-      // recoveringSig
-    )
+      const signedTx = ethers.utils.serializeTransaction(
+        reformattedTx,
+        signature
+      )
+      const parsedSignedTx = ethers.utils.parseTransaction(signedTx)
+      console.log(parsedSignedTx)
 
-    const parsedTx = ethers.utils.parseTransaction(rawTx)
-
-    console.log(`recoveredAddress: ${recoveredAddress}`)
-    console.log(`parsed: `)
-    console.log(parsedTx)
-
-    return recoveredAddress === parsedTx.from
+      return recoveredAddress === parsedSignedTx.from
+    default:
+      // TODO(annieke): implement 'ETH_SIGN' verification as another case
+      return true
   }
 
   // Allow soft forks
