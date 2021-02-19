@@ -259,7 +259,7 @@ export class TransportDB {
   }
 
   private async _getLatestEntryIndex(key: string): Promise<number> {
-    return this.db.get<number>(`${key}:latest`, 0) || 0
+    return this.db.get<number>(`${key}:latest`, 0) || -1
   }
 
   private async _putLatestEntryIndex(
@@ -286,7 +286,7 @@ export class TransportDB {
     entry: TEntry
   ): Promise<void> {
     const latest = await this._getLatestEntryIndex(key)
-    if (entry.index >= latest) {
+    if (entry.index > latest) {
       await this._putLatestEntryIndex(key, entry.index)
     }
   }
