@@ -43,6 +43,7 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
   } = {} as any
 
   protected async _init(): Promise<void> {
+    console.log(this.options)
     this.state.db = level(this.options.db)
     await this.state.db.open()
 
