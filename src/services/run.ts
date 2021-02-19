@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv'
 /* Imports: Internal */
 import { L1DataTransportService } from './main/service'
 
-// TODO: Maybe throw this into its own service instead of doing this here.
+// TODO: Clean this up and use bcfg.
 ;(async () => {
   try {
     dotenv.config()

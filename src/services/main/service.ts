@@ -12,16 +12,28 @@ import {
   L2IngestionService,
   L2IngestionServiceOptions,
 } from '../l2-ingestion/service'
+import { validators } from '../../utils'
 
 type L1DataTransportServiceOptions = L1IngestionServiceOptions &
   L1TransportServerOptions &
   L2IngestionServiceOptions & {
-    syncFromL1?: boolean
-    syncFromL2?: boolean
+    syncFromL1: boolean
+    syncFromL2: boolean
   }
 
 export class L1DataTransportService extends BaseService<L1DataTransportServiceOptions> {
   protected name = 'L1 Data Transport Service'
+
+  protected optionSettings = {
+    syncFromL1: {
+      default: true,
+      validate: validators.isBoolean,
+    },
+    syncFromL2: {
+      default: false,
+      validate: validators.isBoolean,
+    },
+  }
 
   private state: {
     db: any

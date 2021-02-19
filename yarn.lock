@@ -73,10 +73,10 @@
     tslint-plugin-prettier "^2.3.0"
     typescript "^4.1.5"
 
-"@eth-optimism/service-base@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@eth-optimism/service-base/-/service-base-0.0.1.tgz#84c25867e6b30c5accaff4e6b6aca22dc227842a"
-  integrity sha512-TPNvTngdblyY+R1gDH7zcUqxe+MCHnfcF4ObFeaWJvlvL8poayLObZ/fcaEUx0DxwCrwf2R3OOBC0863XgvUaw==
+"@eth-optimism/service-base@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@eth-optimism/service-base/-/service-base-1.1.1.tgz#333da43d075890dbcc3e1e9a2cfea1af82a65258"
+  integrity sha512-XdEzBeUChrFkzmopWEqxBQvezP2ElqkZOnDJODoCbTOvpcGJUX9SaLo7pst0prAWKma9M+dwKESCo7Zza6o5Xg==
   dependencies:
     colors "^1.4.0"
 

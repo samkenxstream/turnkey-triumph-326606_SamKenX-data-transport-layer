@@ -29,7 +29,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
         return validators.isUrl(val) || validators.isJsonRpcProvider(val)
       },
     },
-    l2Chainid: {
+    l2ChainId: {
       validate: validators.isInteger,
     },
     pollingInterval: {

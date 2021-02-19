@@ -32,7 +32,10 @@ export const handleSequencerBlock = {
       timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
       queueOrigin: transaction.queueOrigin,
       type: parseTxType(transaction.txType),
-      queueIndex: BigNumber.from(transaction.queueIndex).toNumber(),
+      queueIndex:
+        transaction.queueIndex === null
+          ? null
+          : BigNumber.from(transaction.queueIndex).toNumber(),
       confirmed: false,
     }
 
