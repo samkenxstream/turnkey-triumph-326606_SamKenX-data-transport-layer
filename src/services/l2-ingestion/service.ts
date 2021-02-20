@@ -133,6 +133,10 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     startBlockNumber: number,
     endBlockNumber: number
   ): Promise<void> {
+    if (startBlockNumber > endBlockNumber) {
+      return
+    }
+
     const blocks = await this.state.l2RpcProvider.send('eth_getBlockRange', [
       toRpcHexString(startBlockNumber),
       toRpcHexString(endBlockNumber),
