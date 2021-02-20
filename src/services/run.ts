@@ -1,35 +1,49 @@
 /* Imports: External */
 import * as dotenv from 'dotenv'
+import Config from 'bcfg' // TODO: Add some types for bcfg if we get the chance.
 
 /* Imports: Internal */
 import { L1DataTransportService } from './main/service'
 
-// TODO: Maybe throw this into its own service instead of doing this here.
+interface Bcfg {
+  load: (options: { env?: boolean; argv?: boolean }) => void
+  str: (name: string, defaultValue?: string) => string
+  uint: (name: string, defaultValue?: number) => number
+  bool: (name: string, defaultValue?: boolean) => boolean
+}
+
 ;(async () => {
   try {
     dotenv.config()
 
+    const config: Bcfg = new Config('data-transport-layer')
+    config.load({
+      env: true,
+      argv: true,
+    })
+
     const service = new L1DataTransportService({
-      db: process.env.DATA_TRANSPORT_LAYER__DB_PATH,
-      port: parseInt(process.env.DATA_TRANSPORT_LAYER__SERVER_PORT, 10),
-      hostname: process.env.DATA_TRANSPORT_LAYER__SERVER_HOSTNAME,
-      confirmations: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__CONFIRMATIONS,
-        10
+      db: config.str('dbPath', './db'),
+      port: config.uint('serverPort', 7878),
+      hostname: config.str('serverHostname', 'localhost'),
+      confirmations: config.uint('confirmations', 12),
+      l1RpcProvider: config.str('l1RpcEndpoint'),
+      addressManager: config.str('addressManager'),
+      pollingInterval: config.uint('pollingInterval', 5000),
+      logsPerPollingInterval: config.uint('logsPerPollingInterval', 2000),
+      dangerouslyCatchAllErrors: config.bool(
+        'dangerouslyCatchAllErrors',
+        false
       ),
-      l1RpcProvider: process.env.DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT,
-      addressManager: process.env.DATA_TRANSPORT_LAYER__ADDRESS_MANAGER,
-      pollingInterval: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__POLLING_INTERVAL,
-        10
+      l2RpcProvider: config.str('l2RpcEndpoint'),
+      l2ChainId: config.uint('l2ChainId', 69),
+      syncFromL1: config.bool('syncFromL1', true),
+      syncFromL2: config.bool('syncFromL2', false),
+      showUnconfirmedTransactions: config.bool('syncFromL2', false),
+      transactionsPerPollingInterval: config.uint(
+        'transactionsPerPollingInterval',
+        1000
       ),
-      logsPerPollingInterval: parseInt(
-        process.env.DATA_TRANSPORT_LAYER__LOGS_PER_POLLING_INTERVAL,
-        10
-      ),
-      dangerouslyCatchAllErrors:
-        process.env.DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS ===
-        'true',
     })
 
     await service.start()

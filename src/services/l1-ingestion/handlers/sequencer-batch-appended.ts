@@ -6,6 +6,7 @@ import {
   fromHexString,
   toHexString,
   TxType,
+  ZERO_ADDRESS,
 } from '@eth-optimism/core-utils'
 
 /* Imports: Internal */
@@ -16,6 +17,10 @@ import {
   TransactionEntry,
   EventHandlerSet,
 } from '../../../types'
+import {
+  SEQUENCER_ENTRYPOINT_ADDRESS,
+  SEQUENCER_GAS_LIMIT,
+} from '../../../utils'
 
 export const handleEventsSequencerBatchAppended: EventHandlerSet<
   EventArgsSequencerBatchAppended,
@@ -79,7 +84,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       submitter: l1Transaction.from,
       l1TransactionHash: l1Transaction.hash,
       l1TransactionData: l1Transaction.data,
-      gasLimit: 8_000_000, // Fixed to this currently.
+      gasLimit: SEQUENCER_GAS_LIMIT,
 
       prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
       batchIndex: batchSubmissionEvent.args._batchIndex,
@@ -120,13 +125,14 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           blockNumber: BigNumber.from(context.blockNumber).toNumber(),
           timestamp: BigNumber.from(context.timestamp).toNumber(),
           gasLimit: BigNumber.from(extraData.gasLimit).toNumber(),
-          target: '0x4200000000000000000000000000000000000005', // TODO: Maybe this needs to be configurable?
+          target: SEQUENCER_ENTRYPOINT_ADDRESS,
           origin: null,
           data: toHexString(sequencerTransaction),
           queueOrigin: 'sequencer',
           type,
           queueIndex: null,
           decoded,
+          confirmed: true,
         })
 
         nextTxPointer += 3 + sequencerTransaction.length
@@ -151,13 +157,14 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           blockNumber: BigNumber.from(0).toNumber(),
           timestamp: BigNumber.from(0).toNumber(),
           gasLimit: BigNumber.from(0).toNumber(),
-          target: '0x0000000000000000000000000000000000000000',
-          origin: '0x0000000000000000000000000000000000000000',
+          target: ZERO_ADDRESS,
+          origin: ZERO_ADDRESS,
           data: '0x',
           queueOrigin: 'l1',
           type: 'EIP155',
           queueIndex: queueIndex.toNumber(),
           decoded: null,
+          confirmed: true,
         })
 
         enqueuedCount++

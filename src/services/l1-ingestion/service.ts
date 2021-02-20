@@ -1,6 +1,6 @@
 /* Imports: External */
 import { BaseService } from '@eth-optimism/service-base'
-import { fromHexString } from '@eth-optimism/core-utils'
+import { fromHexString, ZERO_ADDRESS } from '@eth-optimism/core-utils'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import colors from 'colors/safe'
 
@@ -10,7 +10,6 @@ import {
   OptimismContracts,
   sleep,
   loadOptimismContracts,
-  ZERO_ADDRESS,
   loadContract,
   validators,
 } from '../../utils'

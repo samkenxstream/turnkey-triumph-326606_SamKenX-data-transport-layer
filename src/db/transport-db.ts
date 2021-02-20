@@ -13,8 +13,10 @@ const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,
   ENQUEUE_CTC_INDEX: `ctc:enqueue`,
   TRANSACTION: `transaction`,
+  UNCONFIRMED_TRANSACTION: `unconfirmed:transaction`,
   TRANSACTION_BATCH: `batch:transaction`,
   STATE_ROOT: `stateroot`,
+  UNCONFIRMED_STATE_ROOT: `unconfirmed:stateroot`,
   STATE_ROOT_BATCH: `batch:stateroot`,
   STARTING_L1_BLOCK: `l1:starting`,
   HIGHEST_L2_BLOCK: `l2:highest`,
@@ -42,6 +44,12 @@ export class TransportDB {
     await this._putEntries(TRANSPORT_DB_KEYS.TRANSACTION, entries)
   }
 
+  public async putUnconfirmedTransactionEntries(
+    entries: TransactionEntry[]
+  ): Promise<void> {
+    await this._putEntries(TRANSPORT_DB_KEYS.UNCONFIRMED_TRANSACTION, entries)
+  }
+
   public async putTransactionBatchEntries(
     entries: TransactionBatchEntry[]
   ): Promise<void> {
@@ -50,6 +58,12 @@ export class TransportDB {
 
   public async putStateRootEntries(entries: StateRootEntry[]): Promise<void> {
     await this._putEntries(TRANSPORT_DB_KEYS.STATE_ROOT, entries)
+  }
+
+  public async putUnconfirmedStateRootEntries(
+    entries: StateRootEntry[]
+  ): Promise<void> {
+    await this._putEntries(TRANSPORT_DB_KEYS.UNCONFIRMED_STATE_ROOT, entries)
   }
 
   public async putStateRootBatchEntries(
@@ -83,6 +97,15 @@ export class TransportDB {
     return this._getEntryByIndex(TRANSPORT_DB_KEYS.TRANSACTION, index)
   }
 
+  public async getUnconfirmedTransactionByIndex(
+    index: number
+  ): Promise<TransactionEntry> {
+    return this._getEntryByIndex(
+      TRANSPORT_DB_KEYS.UNCONFIRMED_TRANSACTION,
+      index
+    )
+  }
+
   public async getTransactionsByIndexRange(
     start: number,
     end: number
@@ -98,6 +121,15 @@ export class TransportDB {
 
   public async getStateRootByIndex(index: number): Promise<StateRootEntry> {
     return this._getEntryByIndex(TRANSPORT_DB_KEYS.STATE_ROOT, index)
+  }
+
+  public async getUnconfirmedStateRootByIndex(
+    index: number
+  ): Promise<StateRootEntry> {
+    return this._getEntryByIndex(
+      TRANSPORT_DB_KEYS.UNCONFIRMED_STATE_ROOT,
+      index
+    )
   }
 
   public async getStateRootsByIndexRange(
@@ -121,12 +153,20 @@ export class TransportDB {
     return this._getLatestEntry(TRANSPORT_DB_KEYS.TRANSACTION)
   }
 
+  public async getLatestUnconfirmedTransaction(): Promise<TransactionEntry> {
+    return this._getLatestEntry(TRANSPORT_DB_KEYS.UNCONFIRMED_TRANSACTION)
+  }
+
   public async getLatestTransactionBatch(): Promise<TransactionBatchEntry> {
     return this._getLatestEntry(TRANSPORT_DB_KEYS.TRANSACTION_BATCH)
   }
 
   public async getLatestStateRoot(): Promise<StateRootEntry> {
     return this._getLatestEntry(TRANSPORT_DB_KEYS.STATE_ROOT)
+  }
+
+  public async getLatestUnconfirmedStateRoot(): Promise<StateRootEntry> {
+    return this._getLatestEntry(TRANSPORT_DB_KEYS.UNCONFIRMED_STATE_ROOT)
   }
 
   public async getLatestStateRootBatch(): Promise<StateRootBatchEntry> {
@@ -316,6 +356,10 @@ export class TransportDB {
     key: string,
     index: number
   ): Promise<TEntry | null> {
+    if (index === null) {
+      return null
+    }
+
     return this.db.get<TEntry>(`${key}:index`, index)
   }
 

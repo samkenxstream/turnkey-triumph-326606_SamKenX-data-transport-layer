@@ -73,10 +73,10 @@
     tslint-plugin-prettier "^2.3.0"
     typescript "^4.1.5"
 
-"@eth-optimism/service-base@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@eth-optimism/service-base/-/service-base-0.0.1.tgz#84c25867e6b30c5accaff4e6b6aca22dc227842a"
-  integrity sha512-TPNvTngdblyY+R1gDH7zcUqxe+MCHnfcF4ObFeaWJvlvL8poayLObZ/fcaEUx0DxwCrwf2R3OOBC0863XgvUaw==
+"@eth-optimism/service-base@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@eth-optimism/service-base/-/service-base-1.1.1.tgz#333da43d075890dbcc3e1e9a2cfea1af82a65258"
+  integrity sha512-XdEzBeUChrFkzmopWEqxBQvezP2ElqkZOnDJODoCbTOvpcGJUX9SaLo7pst0prAWKma9M+dwKESCo7Zza6o5Xg==
   dependencies:
     colors "^1.4.0"
 
@@ -1686,6 +1686,13 @@ base@^0.11.1:
     mixin-deep "^1.2.0"
     pascalcase "^0.1.1"
 
+bcfg@^0.1.6:
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/bcfg/-/bcfg-0.1.6.tgz#f77a6323bddef14f3886222e7ef8ccc0bc2143ec"
+  integrity sha512-BR2vwQZwu24aRm588XHOnPVjjQtbK8sF0RopRFgMuke63/REJMWnePTa2YHKDBefuBYiVdgkowuB1/e4K7Ue3g==
+  dependencies:
+    bsert "~0.0.10"
+
 bcrypt-pbkdf@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/bcrypt-pbkdf/-/bcrypt-pbkdf-1.0.2.tgz#a4301d389b6a43f9b67ff3ca11a3f6637e360e9e"
@@ -1899,6 +1906,11 @@ bs58check@^2.1.2:
     bs58 "^4.0.0"
     create-hash "^1.1.0"
     safe-buffer "^5.1.2"
+
+bsert@~0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/bsert/-/bsert-0.0.10.tgz#231ac82873a1418c6ade301ab5cd9ae385895597"
+  integrity sha512-NHNwlac+WPy4t2LoNh8pXk8uaIGH3NSaIUbTTRXGpE2WEbq0te/tDykYHkFK57YKLPjv/aGHmbqvnGeVWDz57Q==
 
 buffer-from@^1.0.0:
   version "1.1.1"

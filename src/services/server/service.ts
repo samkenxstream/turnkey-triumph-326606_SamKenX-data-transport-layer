@@ -24,6 +24,7 @@ export interface L1TransportServerOptions {
   hostname: string
   confirmations: number
   l1RpcProvider: string | JsonRpcProvider
+  showUnconfirmedTransactions: boolean
 }
 
 export class L1TransportServer extends BaseService<L1TransportServerOptions> {
@@ -47,6 +48,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       validate: (val: any) => {
         return validators.isUrl(val) || validators.isJsonRpcProvider(val)
       },
+    },
+    showUnconfirmedTransactions: {
+      validate: validators.isBoolean,
     },
   }
 
@@ -193,11 +197,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const blockNumber = Math.max(0, tip - this.options.confirmations)
 
         if (number > blockNumber) {
-           return {
-             blockNumber: null,
-             timestamp: null,
-             blockHash: null,
-           }
+          return {
+            blockNumber: null,
+            timestamp: null,
+            blockHash: null,
+          }
         }
 
         const block = await this.state.l1RpcProvider.getBlock(number)
@@ -214,6 +218,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       '/enqueue/latest',
       async (): Promise<EnqueueResponse> => {
         const enqueue = await this.state.db.getLatestEnqueue()
+
         if (enqueue === null) {
           return {
             index: null,
@@ -245,6 +250,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const enqueue = await this.state.db.getEnqueueByIndex(
           BigNumber.from(req.params.index).toNumber()
         )
+
         if (enqueue === null) {
           return {
             index: null,
@@ -273,7 +279,18 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/latest',
       async (): Promise<TransactionResponse> => {
-        const transaction = await this.state.db.getLatestFullTransaction()
+        let transaction = await this.state.db.getLatestFullTransaction()
+        if (this.options.showUnconfirmedTransactions) {
+          const unconfirmedTransaction = await this.state.db.getLatestUnconfirmedTransaction()
+
+          if (
+            unconfirmedTransaction !== null &&
+            (transaction === null ||
+              transaction.index < unconfirmedTransaction.index)
+          ) {
+            transaction = unconfirmedTransaction
+          }
+        }
 
         if (transaction === null) {
           return {
@@ -285,13 +302,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getTransactionBatchByIndex(
           transaction.batchIndex
         )
-
-        if (batch === null) {
-          return {
-            transaction: null,
-            batch: null,
-          }
-        }
 
         return {
           transaction,
@@ -304,9 +314,22 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/index/:index',
       async (req): Promise<TransactionResponse> => {
-        const transaction = await this.state.db.getFullTransactionByIndex(
+        let transaction = await this.state.db.getFullTransactionByIndex(
           BigNumber.from(req.params.index).toNumber()
         )
+        if (this.options.showUnconfirmedTransactions) {
+          const unconfirmedTransaction = await this.state.db.getUnconfirmedTransactionByIndex(
+            BigNumber.from(req.params.index).toNumber()
+          )
+
+          if (
+            unconfirmedTransaction !== null &&
+            (transaction === null ||
+              transaction.index < unconfirmedTransaction.index)
+          ) {
+            transaction = unconfirmedTransaction
+          }
+        }
 
         if (transaction === null) {
           return {
@@ -318,13 +341,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getTransactionBatchByIndex(
           transaction.batchIndex
         )
-
-        if (batch === null) {
-          return {
-            transaction: null,
-            batch: null,
-          }
-        }
 
         return {
           transaction,
@@ -351,13 +367,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           BigNumber.from(batch.prevTotalElements).toNumber() +
             BigNumber.from(batch.size).toNumber()
         )
-
-        if (transactions === null) {
-          return {
-            batch: null,
-            transactions: [],
-          }
-        }
 
         return {
           batch,
@@ -387,13 +396,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
             BigNumber.from(batch.size).toNumber()
         )
 
-        if (transactions === null) {
-          return {
-            batch: null,
-            transactions: [],
-          }
-        }
-
         return {
           batch,
           transactions,
@@ -405,7 +407,18 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/latest',
       async (): Promise<StateRootResponse> => {
-        const stateRoot = await this.state.db.getLatestStateRoot()
+        let stateRoot = await this.state.db.getLatestStateRoot()
+        if (this.options.showUnconfirmedTransactions) {
+          const unconfirmedStateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
+
+          if (
+            unconfirmedStateRoot !== null &&
+            (stateRoot === null || stateRoot.index < unconfirmedStateRoot.index)
+          ) {
+            stateRoot = unconfirmedStateRoot
+          }
+        }
+
         if (stateRoot === null) {
           return {
             stateRoot: null,
@@ -416,13 +429,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getStateRootBatchByIndex(
           stateRoot.batchIndex
         )
-
-        if (batch === null) {
-          return {
-            stateRoot: null,
-            batch: null,
-          }
-        }
 
         return {
           stateRoot,
@@ -435,9 +441,21 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/index/:index',
       async (req): Promise<StateRootResponse> => {
-        const stateRoot = await this.state.db.getStateRootByIndex(
+        let stateRoot = await this.state.db.getStateRootByIndex(
           BigNumber.from(req.params.index).toNumber()
         )
+        if (this.options.showUnconfirmedTransactions) {
+          const unconfirmedStateRoot = await this.state.db.getUnconfirmedStateRootByIndex(
+            BigNumber.from(req.params.index).toNumber()
+          )
+
+          if (
+            unconfirmedStateRoot !== null &&
+            (stateRoot === null || stateRoot.index < unconfirmedStateRoot.index)
+          ) {
+            stateRoot = unconfirmedStateRoot
+          }
+        }
 
         if (stateRoot === null) {
           return {
@@ -449,13 +467,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         const batch = await this.state.db.getStateRootBatchByIndex(
           stateRoot.batchIndex
         )
-
-        if (batch === null) {
-          return {
-            stateRoot: null,
-            batch: null,
-          }
-        }
 
         return {
           stateRoot,
@@ -469,6 +480,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       '/batch/stateroot/latest',
       async (): Promise<StateRootBatchResponse> => {
         const batch = await this.state.db.getLatestStateRootBatch()
+
         if (batch === null) {
           return {
             batch: null,
@@ -481,13 +493,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           BigNumber.from(batch.prevTotalElements).toNumber() +
             BigNumber.from(batch.size).toNumber()
         )
-
-        if (stateRoots === null) {
-          return {
-            batch: null,
-            stateRoots: [],
-          }
-        }
 
         return {
           batch,
@@ -516,13 +521,6 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           BigNumber.from(batch.prevTotalElements).toNumber() +
             BigNumber.from(batch.size).toNumber()
         )
-
-        if (stateRoots === null) {
-          return {
-            batch: null,
-            stateRoots: [],
-          }
-        }
 
         return {
           batch,

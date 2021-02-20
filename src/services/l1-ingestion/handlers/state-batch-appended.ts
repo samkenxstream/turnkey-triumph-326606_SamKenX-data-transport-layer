@@ -50,6 +50,7 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
         index: event.args._prevTotalElements.add(BigNumber.from(i)).toNumber(),
         batchIndex: event.args._batchIndex.toNumber(),
         value: stateRoots[i],
+        confirmed: true,
       })
     }
 
