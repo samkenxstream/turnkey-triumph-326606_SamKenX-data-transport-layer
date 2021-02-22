@@ -79,7 +79,9 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
   protected async _start(): Promise<void> {
     while (this.running) {
       try {
-        const currentL2Block = await this.state.l2RpcProvider.getBlockNumber()
+        // Subtract one to account for the CTC being zero indexed
+        const currentL2Block =
+          (await this.state.l2RpcProvider.getBlockNumber()) - 1
         const targetL2Block = Math.min(
           this.state.highestSyncedL2BlockNumber +
             this.options.transactionsPerPollingInterval,
@@ -133,6 +135,14 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     startBlockNumber: number,
     endBlockNumber: number
   ): Promise<void> {
+    if (startBlockNumber > endBlockNumber) {
+      this.logger.info(
+        `Cannot query with start block number ${startBlockNumber}` +
+          `larger than end block number ${endBlockNumber}`
+      )
+      return
+    }
+
     const blocks = await this.state.l2RpcProvider.send('eth_getBlockRange', [
       toRpcHexString(startBlockNumber),
       toRpcHexString(endBlockNumber),
