@@ -80,8 +80,10 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     while (this.running) {
       try {
         // Subtract one to account for the CTC being zero indexed
-        const currentL2Block =
-          (await this.state.l2RpcProvider.getBlockNumber()) - 1
+        const currentL2Block = Math.max(
+          (await this.state.l2RpcProvider.getBlockNumber()) - 1,
+          0
+        )
         const targetL2Block = Math.min(
           this.state.highestSyncedL2BlockNumber +
             this.options.transactionsPerPollingInterval,
