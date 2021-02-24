@@ -9,6 +9,7 @@ export interface DecodedSequencerBatchTransaction {
   nonce: number
   target: string
   data: string
+  type: number
 }
 
 export interface EnqueueEntry {

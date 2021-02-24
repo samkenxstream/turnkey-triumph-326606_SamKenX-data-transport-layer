@@ -56,6 +56,7 @@ export const handleSequencerBlock = {
         nonce: BigNumber.from(transaction.nonce).toNumber(),
         target: transaction.to || ZERO_ADDRESS, // ?
         data: transaction.input,
+        type: transaction.txType,
       }
 
       transactionEntry = {
