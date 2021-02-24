@@ -24,16 +24,21 @@ export const handleSequencerBlock = {
     stateRootEntry: StateRootEntry
   }> => {
     const transaction = block.transactions[0]
+    const transactionIndex =
+      transaction.index === null || transaction.index === undefined
+        ? BigNumber.from(transaction.blockNumber).toNumber() - 1
+        : BigNumber.from(transaction.index).toNumber()
 
     let transactionEntry: Partial<TransactionEntry> = {
-      index: BigNumber.from(transaction.index).toNumber(),
+      // Legacy support.
+      index: transactionIndex,
       batchIndex: null,
       blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
       timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
       queueOrigin: transaction.queueOrigin,
       type: parseTxType(transaction.txType),
       queueIndex:
-        transaction.queueIndex === null
+        transaction.queueIndex === null || transaction.queueIndex === undefined
           ? null
           : BigNumber.from(transaction.queueIndex).toNumber(),
       confirmed: false,
@@ -76,7 +81,7 @@ export const handleSequencerBlock = {
     }
 
     const stateRootEntry: StateRootEntry = {
-      index: BigNumber.from(transaction.index).toNumber(),
+      index: transactionIndex,
       batchIndex: null,
       value: block.stateRoot,
       confirmed: false,

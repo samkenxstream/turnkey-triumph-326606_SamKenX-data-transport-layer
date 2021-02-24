@@ -14,6 +14,7 @@ const TRANSPORT_DB_KEYS = {
   ENQUEUE_CTC_INDEX: `ctc:enqueue`,
   TRANSACTION: `transaction`,
   UNCONFIRMED_TRANSACTION: `unconfirmed:transaction`,
+  UNCONFIRMED_HIGHEST: `unconfirmed:highest`,
   TRANSACTION_BATCH: `batch:transaction`,
   STATE_ROOT: `stateroot`,
   UNCONFIRMED_STATE_ROOT: `unconfirmed:stateroot`,
@@ -189,6 +190,22 @@ export class TransportDB {
         key: TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK,
         index: 0,
         value: BigNumber.from(block).toNumber(),
+      },
+    ])
+  }
+
+  public async getHighestSyncedUnconfirmedBlock(): Promise<number> {
+    return (
+      (await this.db.get<number>(TRANSPORT_DB_KEYS.UNCONFIRMED_HIGHEST, 0)) || 0
+    )
+  }
+
+  public async setHighestSyncedUnconfirmedBlock(block: number): Promise<void> {
+    return this.db.put<number>([
+      {
+        key: TRANSPORT_DB_KEYS.UNCONFIRMED_HIGHEST,
+        index: 0,
+        value: block,
       },
     ])
   }
