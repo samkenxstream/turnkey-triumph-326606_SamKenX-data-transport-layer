@@ -14,7 +14,6 @@ import { handleSequencerBlock } from './handlers/transaction'
 export interface L2IngestionServiceOptions
   extends L1DataTransportServiceOptions {
   db: LevelUp
-  legacySequencerCompatibility?: boolean
 }
 
 export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {

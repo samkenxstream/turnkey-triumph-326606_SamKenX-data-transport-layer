@@ -25,6 +25,7 @@ export interface L1DataTransportServiceOptions {
   syncFromL1?: boolean
   syncFromL2?: boolean
   transactionsPerPollingInterval: number
+  legacySequencerCompatibility: boolean
 }
 
 export class L1DataTransportService extends BaseService<L1DataTransportServiceOptions> {
