@@ -44,6 +44,10 @@ interface Bcfg {
         'transactionsPerPollingInterval',
         1000
       ),
+      legacySequencerCompatibility: config.bool(
+        'legacySequencerCompatibility',
+        false
+      ),
     })
 
     await service.start()

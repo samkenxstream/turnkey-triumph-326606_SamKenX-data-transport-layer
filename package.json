@@ -43,6 +43,7 @@
     "@types/cors": "^2.8.9",
     "@types/node-fetch": "^2.5.8",
     "@types/rimraf": "^3.0.0",
-    "hardhat": "^2.0.9"
+    "hardhat": "^2.0.9",
+    "rimraf": "^3.0.2"
   }
 }
