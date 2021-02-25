@@ -37,10 +37,6 @@ export const handleSequencerBlock = {
       timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
       queueOrigin: transaction.queueOrigin,
       type: parseTxType(transaction.txType),
-      queueIndex:
-        transaction.queueIndex === null || transaction.queueIndex === undefined
-          ? null
-          : BigNumber.from(transaction.queueIndex).toNumber(),
       confirmed: false,
     }
 
@@ -69,6 +65,7 @@ export const handleSequencerBlock = {
           transaction.txType
         ),
         decoded: decodedTransaction,
+        queueIndex: null,
       }
     } else {
       transactionEntry = {
@@ -78,6 +75,10 @@ export const handleSequencerBlock = {
         origin: ethers.utils.getAddress(transaction.l1TxOrigin),
         data: transaction.input,
         decoded: null,
+        queueIndex:
+          transaction.queueIndex === null || transaction.queueIndex === undefined
+            ? BigNumber.from(transaction.nonce).toNumber()
+            : BigNumber.from(transaction.queueIndex).toNumber(),
       }
     }
 
