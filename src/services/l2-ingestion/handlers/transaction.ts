@@ -76,7 +76,8 @@ export const handleSequencerBlock = {
         data: transaction.input,
         decoded: null,
         queueIndex:
-          transaction.queueIndex === null || transaction.queueIndex === undefined
+          transaction.queueIndex === null ||
+          transaction.queueIndex === undefined
             ? BigNumber.from(transaction.nonce).toNumber()
             : BigNumber.from(transaction.queueIndex).toNumber(),
       }

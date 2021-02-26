@@ -277,17 +277,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/latest',
       async (): Promise<TransactionResponse> => {
-        let transaction = await this.state.db.getLatestFullTransaction()
+        let transaction = null
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedTransaction = await this.state.db.getLatestUnconfirmedTransaction()
-
-          if (
-            unconfirmedTransaction !== null &&
-            (transaction === null ||
-              transaction.index < unconfirmedTransaction.index)
-          ) {
-            transaction = unconfirmedTransaction
-          }
+          transaction = await this.state.db.getLatestUnconfirmedTransaction()
+        } else {
+          transaction = await this.state.db.getLatestFullTransaction()
         }
 
         if (transaction === null) {
@@ -312,21 +306,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/index/:index',
       async (req): Promise<TransactionResponse> => {
-        let transaction = await this.state.db.getFullTransactionByIndex(
-          BigNumber.from(req.params.index).toNumber()
-        )
+        let transaction = null
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedTransaction = await this.state.db.getUnconfirmedTransactionByIndex(
+          transaction = await this.state.db.getUnconfirmedTransactionByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
-
-          if (
-            unconfirmedTransaction !== null &&
-            (transaction === null ||
-              transaction.index < unconfirmedTransaction.index)
-          ) {
-            transaction = unconfirmedTransaction
-          }
+        } else {
+          transaction = await this.state.db.getFullTransactionByIndex(
+            BigNumber.from(req.params.index).toNumber()
+          )
         }
 
         if (transaction === null) {
@@ -405,16 +393,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/latest',
       async (): Promise<StateRootResponse> => {
-        let stateRoot = await this.state.db.getLatestStateRoot()
+        let stateRoot = null
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedStateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
-
-          if (
-            unconfirmedStateRoot !== null &&
-            (stateRoot === null || stateRoot.index < unconfirmedStateRoot.index)
-          ) {
-            stateRoot = unconfirmedStateRoot
-          }
+          stateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
+        } else {
+          stateRoot = await this.state.db.getLatestStateRoot()
         }
 
         if (stateRoot === null) {
@@ -439,20 +422,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/index/:index',
       async (req): Promise<StateRootResponse> => {
-        let stateRoot = await this.state.db.getStateRootByIndex(
-          BigNumber.from(req.params.index).toNumber()
-        )
+        let stateRoot = null
         if (this.options.showUnconfirmedTransactions) {
-          const unconfirmedStateRoot = await this.state.db.getUnconfirmedStateRootByIndex(
+          stateRoot = await this.state.db.getUnconfirmedStateRootByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
-
-          if (
-            unconfirmedStateRoot !== null &&
-            (stateRoot === null || stateRoot.index < unconfirmedStateRoot.index)
-          ) {
-            stateRoot = unconfirmedStateRoot
-          }
+        } else {
+          stateRoot = await this.state.db.getStateRootByIndex(
+            BigNumber.from(req.params.index).toNumber()
+          )
         }
 
         if (stateRoot === null) {
