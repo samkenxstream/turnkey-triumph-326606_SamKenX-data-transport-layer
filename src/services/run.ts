@@ -48,6 +48,7 @@ interface Bcfg {
         'legacySequencerCompatibility',
         false
       ),
+      stopL2SyncAtBlock: config.uint('stopL2SyncAtBlock'),
     })
 
     await service.start()

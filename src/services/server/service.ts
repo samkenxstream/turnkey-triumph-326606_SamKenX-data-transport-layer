@@ -280,7 +280,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         let transaction = null
         if (this.options.showUnconfirmedTransactions) {
           transaction = await this.state.db.getLatestUnconfirmedTransaction()
-        } else {
+        }
+
+        if (transaction === null) {
           transaction = await this.state.db.getLatestFullTransaction()
         }
 
@@ -311,7 +313,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           transaction = await this.state.db.getUnconfirmedTransactionByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
-        } else {
+        }
+
+        if (transaction === null) {
           transaction = await this.state.db.getFullTransactionByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
@@ -396,7 +400,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         let stateRoot = null
         if (this.options.showUnconfirmedTransactions) {
           stateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
-        } else {
+        }
+
+        if (stateRoot === null) {
           stateRoot = await this.state.db.getLatestStateRoot()
         }
 
@@ -427,7 +433,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           stateRoot = await this.state.db.getUnconfirmedStateRootByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
-        } else {
+        }
+
+        if (stateRoot === null) {
           stateRoot = await this.state.db.getStateRootByIndex(
             BigNumber.from(req.params.index).toNumber()
           )
