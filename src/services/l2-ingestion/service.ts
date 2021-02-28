@@ -48,6 +48,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
       validate: validators.isBoolean,
     },
     stopL2SyncAtBlock: {
+      default: Infinity,
       validate: validators.isInteger,
     },
   }
