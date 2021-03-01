@@ -277,9 +277,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/latest',
       async (): Promise<TransactionResponse> => {
-        let transaction = null
+        let transaction = await this.state.db.getLatestFullTransaction()
         if (this.options.showUnconfirmedTransactions) {
-          transaction = await this.state.db.getLatestUnconfirmedTransaction()
+          const latestUnconfirmedTx = await this.state.db.getLatestUnconfirmedTransaction()
+          if (
+            transaction === null ||
+            transaction === undefined ||
+            latestUnconfirmedTx.index >= transaction.index
+          ) {
+            transaction = latestUnconfirmedTx
+          }
         }
 
         if (transaction === null) {
@@ -397,9 +404,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/latest',
       async (): Promise<StateRootResponse> => {
-        let stateRoot = null
+        let stateRoot = await this.state.db.getLatestStateRoot()
         if (this.options.showUnconfirmedTransactions) {
-          stateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
+          const latestUnconfirmedStateRoot = await this.state.db.getLatestUnconfirmedStateRoot()
+          if (
+            stateRoot === null ||
+            stateRoot === undefined ||
+            latestUnconfirmedStateRoot.index >= stateRoot.index
+          ) {
+            stateRoot = latestUnconfirmedStateRoot
+          }
         }
 
         if (stateRoot === null) {
