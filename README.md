@@ -1,8 +1,9 @@
-# @eth-optimism/data-transport-layer
+# @eth-optimism/l2-transaction-indexer
 
 ## What is this?
 
-The Optimistic Ethereum Data Transport Layer is a long-running software service (written in TypeScript) designed to reliably index Optimistic Ethereum transaction data from Layer 1 (Ethereum). Specifically, this service indexes:
+The Optimistic Ethereum L2 Transaction Indexer is a long-running software service (written in TypeScript) designed to reliably index Optimistic Ethereum transaction data from Layer 1 (Ethereum).
+Specifically, this service indexes:
 
 * Transactions that have been enqueued for submission to the CanonicalTransactionChain via [`enqueue`](https://github.com/ethereum-optimism/contracts-v2/blob/13b7deef60f773241723ea874fc6e81b4003b164/contracts/optimistic-ethereum/OVM/chain/OVM_CanonicalTransactionChain.sol#L225-L231).
 * Transactions that have been included in the CanonicalTransactionChain via [`appendQueueBatch`](https://github.com/ethereum-optimism/contracts-v2/blob/13b7deef60f773241723ea874fc6e81b4003b164/contracts/optimistic-ethereum/OVM/chain/OVM_CanonicalTransactionChain.sol#L302-L306) or [`appendSequencerBatch`](https://github.com/ethereum-optimism/contracts-v2/blob/13b7deef60f773241723ea874fc6e81b4003b164/contracts/optimistic-ethereum/OVM/chain/OVM_CanonicalTransactionChain.sol#L352-L354).
